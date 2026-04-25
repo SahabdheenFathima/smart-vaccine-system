@@ -1,0 +1,302 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+/* Main Container to handle the slideshow context */
+.dashboard-page {
+    position: relative;
+    min-height: 100vh;
+    width: 100vw;
+    font-family: 'Outfit', sans-serif;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+/* Background Slideshow Container */
+.slideshow-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    background-color: #000;
+    /* fall back if images fail */
+}
+
+/* The individual slides */
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    /* 
+      Animation breakdown:
+      - 48s total duration for 6 slides (8s per slide)
+      - infinite looping
+      - crossfade for smooth transitions
+    */
+    animation: slideAnimation 48s infinite linear;
+}
+
+/* High quality placeholder images related to maternal/child health */
+.slide-1 {
+    background-image: url('https://images.unsplash.com/photo-1584515979956-d41935dbd269?auto=format&fit=crop&q=80&w=2070&auto=format');
+    animation-delay: -2.4s;
+}
+
+.slide-2 {
+    background-image: url('https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&q=80&w=2040&auto=format');
+    animation-delay: 5.6s;
+}
+
+.slide-3 {
+    background-image: url('https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=2070&auto=format');
+    animation-delay: 13.6s;
+}
+
+.slide-4 {
+    background-image: url('https://images.unsplash.com/photo-1504151932400-72d4384f0e6d?auto=format&fit=crop&q=80&w=2070&auto=format');
+    animation-delay: 21.6s;
+}
+
+.slide-5 {
+    background-image: url('https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&q=80&w=2070&auto=format');
+    animation-delay: 29.6s;
+}
+
+.slide-6 {
+    background-image: url('https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&fit=crop&q=80&w=2052&auto=format');
+    animation-delay: 37.6s;
+}
+
+/* Fade in, scale slowly (zoom effect), and crossfade out */
+@keyframes slideAnimation {
+    0% {
+        opacity: 0;
+        transform: scale(1);
+    }
+
+    5% {
+        opacity: 1;
+    }
+
+    16% {
+        opacity: 1;
+    }
+
+    21% {
+        opacity: 0;
+        transform: scale(1.08);
+        /* Slow zoom in */
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+}
+
+/* Glass Overlay across the whole screen to darken the images slightly for text legibility */
+.slideshow-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+}
+
+/* Main content wrapper floating above the slideshow */
+.dashboard-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 5vh;
+    min-height: 100vh;
+}
+
+/* Header Glassmorphism */
+.dash-header {
+    width: 90%;
+    max-width: 1200px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 15px 30px;
+    border-radius: 20px;
+    margin-bottom: 50px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.dash-app-title {
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dash-user-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.dash-user-name {
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Glassmorphism Welcome Card */
+.dash-welcome-card {
+    width: 90%;
+    max-width: 700px;
+    background: rgba(255, 255, 255, 0.8);
+    /* mostly white but translucent */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    padding: 50px;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    text-align: center;
+    color: #1e293b;
+    transform: translateY(20px);
+    animation: fadeInUp 0.8s ease forwards 0.2s;
+    opacity: 0;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dash-welcome-title {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4f46e5 0%, #10b981 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-top: 0;
+    margin-bottom: 10px;
+    letter-spacing: -1px;
+}
+
+.dash-welcome-subtitle {
+    font-size: 18px;
+    font-weight: 400;
+    color: #475569;
+    margin-bottom: 40px;
+    line-height: 1.5;
+}
+
+/* Submitted Data Table inside Card */
+.dash-submitted-data {
+    text-align: left;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dash-submitted-data h3 {
+    margin-top: 0;
+    color: #334155;
+    font-size: 18px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.dash-submitted-data ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.dash-submitted-data li {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 15px;
+    color: #475569;
+}
+
+.dash-submitted-data li strong {
+    color: #1e293b;
+    display: inline-block;
+    width: 180px;
+}
+
+/* Buttons */
+.btn-dash {
+    padding: 14px 30px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    border: none;
+}
+
+.btn-dash-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    width: 100%;
+    font-size: 18px;
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+}
+
+.btn-dash-primary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 25px rgba(16, 185, 129, 0.35);
+}
+
+.btn-dash-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.btn-dash-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .dash-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+    }
+
+    .dash-welcome-card {
+        padding: 30px 20px;
+    }
+
+    .dash-welcome-title {
+        font-size: 32px;
+    }
+}

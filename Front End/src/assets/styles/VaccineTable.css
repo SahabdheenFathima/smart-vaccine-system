@@ -1,0 +1,36 @@
+.vaccine-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 800px;
+}
+
+.vaccine-table th, .vaccine-table td {
+    padding: 1.25rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.vaccine-table th {
+    background: var(--bg-main);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vaccine-table tr:last-child td {
+    border-bottom: none;
+}
+
+.vaccine-table tr:hover {
+    background-color: var(--primary-glow);
+}
+
+.table-responsive {
+    overflow-x: auto;
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+}
