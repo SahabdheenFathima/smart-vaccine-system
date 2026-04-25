@@ -6,7 +6,6 @@ import Button from '../components/atoms/Button';
 const DashboardPage = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState({ show: false, title: '', message: '', icon: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,17 +33,8 @@ const DashboardPage = () => {
     </div>
   );
 
-  const handleQuickAction = (path, label, icon) => {
-    if (path === '#') {
-      setModal({
-        show: true,
-        title: `${label}`,
-        message: `The ${label} module is currently under development. Stay tuned for our next major update where we'll bring this powerful feature to your health portal!`,
-        icon: icon
-      });
-    } else {
-      navigate(path);
-    }
+  const handleQuickAction = (path) => {
+    navigate(path);
   };
 
   return (
@@ -92,14 +82,12 @@ const DashboardPage = () => {
           <div className="grid-actions">
             {[
               { label: 'Milestones', path: '/milestones', icon: '🎯' },
-              { label: 'Profile History', path: '/baby-history', icon: '👶' },
-              { label: 'Consultation', path: '#', icon: '🩺' },
-              { label: 'Health Reports', path: '#', icon: '📄' }
+              { label: 'Profile History', path: '/baby-history', icon: '👶' }
             ].map(action => (
               <button 
                 key={action.label} 
                 className="btn-outline-premium"
-                onClick={() => handleQuickAction(action.path, action.label, action.icon)}
+                onClick={() => handleQuickAction(action.path)}
               >
                 <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{action.icon}</div>
                 <span style={{ fontSize: '1rem', fontWeight: 800 }}>{action.label}</span>
@@ -109,28 +97,7 @@ const DashboardPage = () => {
         </section>
       </div>
 
-      {/* Premium UI Modal (Replacing Browser Alert) */}
-      {modal.show && (
-        <div style={{ 
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', 
-          backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', 
-          justifyContent: 'center', zIndex: 10000 
-        }} onClick={() => setModal({ ...modal, show: false })}>
-          <div className="card-premium animate-slide" style={{ maxWidth: '500px', width: '90%', textAlign: 'center', padding: '3.5rem' }} onClick={e => e.stopPropagation()}>
-            <div style={{ 
-                width: '100px', height: '100px', background: 'var(--primary-glow)', 
-                color: 'var(--primary)', borderRadius: '30px', display: 'flex', 
-                alignItems: 'center', justifyContent: 'center', margin: '0 auto 2.5rem',
-                fontSize: '3.5rem'
-            }}>
-              {modal.icon}
-            </div>
-            <h2 className="text-huge" style={{ fontSize: '2rem' }}>{modal.title}</h2>
-            <p className="text-muted mt-4 mb-10" style={{ fontSize: '1.0625rem', lineHeight: '1.6' }}>{modal.message}</p>
-            <Button onClick={() => setModal({ ...modal, show: false })} className="w-full !py-4">Back to Dashboard</Button>
-          </div>
-        </div>
-      )}
+      {/* No modal needed anymore since 'Under Development' actions are removed */}
     </MainLayout>
   );
 };

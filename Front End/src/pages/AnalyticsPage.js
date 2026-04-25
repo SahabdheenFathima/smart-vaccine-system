@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
+import { toast } from "react-hot-toast";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend, Filler } from "chart.js";
 import MainLayout from '../components/templates/MainLayout';
@@ -14,7 +15,6 @@ const AnalyticsPage = () => {
     const navigate = useNavigate();
     const [babies, setBabies] = useState([]);
     const [selectedBabyId, setSelectedBabyId] = useState("");
-    const [age, setAge] = useState("");
     const [height, setHeight] = useState("");
     const [data, setData] = useState([]);
     const [user, setUser] = useState(null);
@@ -78,26 +78,39 @@ const AnalyticsPage = () => {
         fetchGrowthData(user.email, id);
     };
 
+    const calculateAgeInMonths = (birthDate) => {
+        if (!birthDate) return 0;
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let months = (today.getFullYear() - birth.getFullYear()) * 12;
+        months -= birth.getMonth();
+        months += today.getMonth();
+        return months <= 0 ? 0 : months;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (age && height && user && selectedBabyId) {
+        const baby = babies.find(b => b._id === selectedBabyId);
+
+        if (height && user && selectedBabyId && baby) {
             try {
+                const calculatedAge = calculateAgeInMonths(baby.birthDate);
                 const res = await axios.post(`${API_BASE}/api/growth`, {
                     email: user.email,
                     babyId: selectedBabyId,
-                    age,
+                    age: calculatedAge,
                     height
                 });
                 if (res.data.status === "ok") {
                     setData(prev => [...prev, res.data.data].sort((a, b) => a.age - b.age));
-                    setAge("");
                     setHeight("");
+                    toast.success("Measurement saved successfully");
                 }
             } catch (err) {
-                alert("Failed to save measurement");
+                toast.error("Failed to save measurement");
             }
         } else if (!selectedBabyId) {
-            alert("Please register or select a baby first.");
+            toast.error("Please register or select a baby first.");
         }
     };
 
@@ -106,9 +119,10 @@ const AnalyticsPage = () => {
             const res = await axios.delete(`${API_BASE}/api/growth/${id}`);
             if (res.data.status === "ok") {
                 setData(data.filter((_, i) => i !== index));
+                toast.success("Record deleted");
             }
         } catch (err) {
-            alert("Failed to delete record");
+            toast.error("Failed to delete record");
         }
     };
 
@@ -286,8 +300,9 @@ const AnalyticsPage = () => {
                             </div>
                             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">Age (Months)</label>
-                                    <Input type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="e.g. 12" required className="input-field" />
+                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">
+                                        Baby's Age: {babies.find(b => b._id === selectedBabyId) ? `${calculateAgeInMonths(babies.find(b => b._id === selectedBabyId).birthDate)} Months (Auto-calculated)` : 'Unknown'}
+                                    </label>
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">Height (CM)</label>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
 // New Atomic Pages
@@ -28,6 +29,7 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <Router>
+      <Toaster position="top-center" reverseOrder={false} />
       <div className="App">
         <Routes>
           {/* Public Routes */}
