@@ -9,6 +9,8 @@ const BabyHistoryPage = () => {
     const [babies, setBabies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const navigate = useNavigate();
 
     const API_BASE = "http://localhost:5001";
@@ -60,6 +62,12 @@ const BabyHistoryPage = () => {
         );
     }
 
+    const filteredBabies = babies.filter(baby => 
+        baby.babyName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        baby._id.slice(-8).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        baby.motherName?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     const DetailItem = ({ label, value, unit = '', icon }) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
@@ -86,9 +94,74 @@ const BabyHistoryPage = () => {
                             <p className="text-muted mt-1">Detailed repository of registered pediatric profiles.</p>
                         </div>
                     </div>
-                    <Button onClick={() => navigate('/add-baby')} className="btn-premium">
-                        <span>Register New Profile</span>
-                    </Button>
+                    <div className="flex-center" style={{ gap: '1rem' }}>
+                        {babies.length > 0 && (
+                            isSearchOpen ? (
+                                <div style={{ 
+                                    position: 'relative', 
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    width: '280px',
+                                    animation: 'slideIn 0.3s ease-out'
+                                }}>
+                                    <span style={{ position: 'absolute', left: '1rem', opacity: 0.5, color: 'var(--text-secondary)' }}>
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    </span>
+                                    <input 
+                                        type="text" 
+                                        autoFocus
+                                        placeholder="Search profiles..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onBlur={(e) => {
+                                            if (!searchTerm) setIsSearchOpen(false);
+                                        }}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.75rem 2.5rem 0.75rem 2.5rem', 
+                                            borderRadius: '0.75rem', 
+                                            border: '2px solid var(--primary)', 
+                                            background: 'var(--bg-card)',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                            outline: 'none',
+                                            boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.1)'
+                                        }}
+                                    />
+                                    {searchTerm && (
+                                        <button 
+                                            onClick={() => setSearchTerm('')}
+                                            style={{ position: 'absolute', right: '0.75rem', opacity: 0.5, border: 'none', background: 'none', cursor: 'pointer' }}
+                                        >
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <button 
+                                    onClick={() => setIsSearchOpen(true)}
+                                    className="btn-premium"
+                                    style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.5rem',
+                                        background: 'var(--bg-card)',
+                                        color: 'var(--text-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        boxShadow: 'none',
+                                        padding: '0.75rem 1.25rem'
+                                    }}
+                                >
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    <span>Search</span>
+                                </button>
+                            )
+                        )}
+                        <Button onClick={() => navigate('/add-baby')} className="btn-premium">
+                            <span>Register New Profile</span>
+                        </Button>
+                    </div>
                 </header>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
@@ -99,8 +172,15 @@ const BabyHistoryPage = () => {
                             <p className="text-muted mt-2 mb-8">No pediatric profiles associated with this account.</p>
                             <Button onClick={() => navigate('/add-baby')} style={{ width: '240px', margin: '0 auto' }}>Initialize First Record</Button>
                         </Card>
+                    ) : filteredBabies.length === 0 ? (
+                        <Card className="p-20 text-center card-premium">
+                            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🔍</div>
+                            <h3 className="text-title text-2xl">No Results Found</h3>
+                            <p className="text-muted mt-2 mb-8">No pediatric profiles match your search criteria.</p>
+                            <Button onClick={() => setSearchTerm('')} variant="outline" style={{ width: '240px', margin: '0 auto' }}>Clear Search</Button>
+                        </Card>
                     ) : (
-                        babies.map((baby) => (
+                        filteredBabies.map((baby) => (
                             <div key={baby._id} className="card-premium p-0 overflow-hidden" style={{ background: 'var(--bg-card)' }}>
                                 {/* Profile Hero Bar */}
                                 <div className="flex-center-between" style={{ 
