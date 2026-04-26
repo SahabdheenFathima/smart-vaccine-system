@@ -12,6 +12,7 @@ import VaccineSchedulePage from "./pages/VaccineSchedulePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import DevelopmentStagesPage from "./pages/DevelopmentStagesPage";
 import BabyHistoryPage from "./pages/BabyHistoryPage";
+import RemindersDashboardPage from "./pages/RemindersDashboardPage";
 
 // Original components (kept for fallback/reference if needed)
 // import SignIn from "./components/SignIn";
@@ -76,6 +77,12 @@ function App() {
           <Route path="/baby-history" element={
             <ProtectedRoute>
               <BabyHistoryPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/reminders" element={
+            <ProtectedRoute>
+              <RemindersDashboardPage />
             </ProtectedRoute>
           } />
 

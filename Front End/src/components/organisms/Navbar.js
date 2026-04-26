@@ -41,6 +41,26 @@ const Navbar = ({ user }) => {
         
         {/* Actions & User Section */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>
+          {/* Notification Bell */}
+          <button 
+            onClick={() => navigate('/reminders')}
+            style={{ 
+              background: 'transparent', border: 'none', cursor: 'pointer', 
+              padding: '10px', color: 'var(--text-secondary)', borderRadius: '12px',
+              transition: 'background 0.2s', position: 'relative'
+            }}
+            className="hover-bg"
+          >
+            <svg style={{ width: '24px', height: '24px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {/* Live Indicator Dot */}
+            <span style={{ 
+              position: 'absolute', top: '8px', right: '8px', width: '10px', height: '10px', 
+              background: '#ef4444', borderRadius: '50%', border: '2px solid var(--bg-card)' 
+            }}></span>
+          </button>
+
           {/* Theme Toggle */}
           <button 
             onClick={toggleTheme}

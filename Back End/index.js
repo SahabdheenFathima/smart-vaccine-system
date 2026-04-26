@@ -43,7 +43,7 @@ mongoose
     // Changed to daily at midnight (0 0 * * *) to avoid spam and save resources
     cron.schedule('0 0 * * *', async () => {
       try {
-        console.log("⏰ Daily Vaccine Reminder Cron Job started...");
+        console.log("⏰ Smart Reminder Engine: Daily Processing Started...");
         const babies = await Baby.find();
         if (!babies.length) return;
 
@@ -55,54 +55,70 @@ mongoose
           }
         });
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         for (const baby of babies) {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
+          const babyVaccines = await Vaccine.find({ babyId: baby._id, got: false });
           
-          const birthDate = new Date(baby.birthDate);
-          const daysSinceBirth = Math.floor((tomorrow - birthDate) / (1000 * 60 * 60 * 24));
-          
-          const vaccineSchedule = require('./vaccineSchedule');
-          const dueVaccines = vaccineSchedule.filter(v => v.daysAfterBirth === daysSinceBirth);
+          for (const vaccine of babyVaccines) {
+            const scheduledDate = new Date(vaccine.scheduleDate);
+            scheduledDate.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((scheduledDate - today) / (1000 * 60 * 60 * 24));
 
-          if (dueVaccines.length === 0) continue;
+            let tier = null;
+            let updateField = "";
 
-          for (const vaccine of dueVaccines) {
-            const alreadySent = await Vaccine.findOne({
-              babyId: baby._id,
-              vaccineName: vaccine.name,
-              sent: true
-            });
+            if (diffDays < 0 && !vaccine.missedReminderSent) {
+              tier = { type: "MISSED", subject: `🚨 ACTION REQUIRED: Missed Vaccine for ${baby.babyName}` };
+              updateField = "missedReminderSent";
+            } else if ((diffDays === 1 || diffDays === 0) && !vaccine.urgentReminderSent) {
+              tier = { type: "URGENT", subject: `⚡ URGENT: Vaccine Due Tomorrow for ${baby.babyName}` };
+              updateField = "urgentReminderSent";
+            } else if (diffDays <= 7 && diffDays > 1 && !vaccine.softReminderSent) {
+              tier = { type: "SOFT", subject: `🔔 Upcoming Vaccine Reminder: ${baby.babyName}` };
+              updateField = "softReminderSent";
+            }
 
-            if (alreadySent) continue;
+            if (tier) {
+              const mailOptions = {
+                from: `"Smart Vaccine System" <${process.env.EMAIL_USER}>`,
+                to: baby.email,
+                subject: tier.subject,
+                html: `<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #333; background: #f9fafb; border-radius: 15px;">
+                        <div style="background: white; padding: 25px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                          <h2 style="color: ${tier.type === 'MISSED' ? '#ef4444' : tier.type === 'URGENT' ? '#f59e0b' : '#4F46E5'}; margin-top: 0;">${tier.type} Notification</h2>
+                          <p>Dear Parent,</p>
+                          <p>This is a <strong>${tier.type.toLowerCase()}</strong> reminder regarding <strong>${baby.babyName}'s</strong> health schedule.</p>
+                          <div style="margin: 20px 0; padding: 15px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid ${tier.type === 'MISSED' ? '#ef4444' : tier.type === 'URGENT' ? '#f59e0b' : '#4F46E5'};">
+                            <strong>Vaccine:</strong> ${vaccine.vaccineName}<br/>
+                            <strong>Status:</strong> ${tier.type === 'MISSED' ? 'OVERDUE' : 'Scheduled'}<br/>
+                            <strong>Date:</strong> ${scheduledDate.toDateString()}
+                          </div>
+                          <p>Please log in to your dashboard to view full details and mark as administered once complete.</p>
+                          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;"/>
+                          <p style="font-size: 0.85em; color: #6b7280; line-height: 1.5;">
+                            Regards,<br/>
+                            <strong>Smart System Health Team</strong><br/>
+                            Professional Healthcare Management
+                          </p>
+                        </div>
+                      </div>`
+              };
 
-            const mailOptions = {
-              from: `"Vaccine Reminder" <${process.env.EMAIL_USER}>`,
-              to: baby.email,
-              subject: `Vaccine Reminder for ${baby.babyName}`,
-              html: `<div style="font-family: sans-serif; padding: 20px; color: #333;">
-                      <h2>Vaccine Reminder</h2>
-                      <p>Dear Parent,</p>
-                      <p>This is a reminder that <strong>${baby.babyName}</strong> is scheduled to receive the <strong>"${vaccine.name}"</strong> vaccine tomorrow.</p>
-                      <hr/>
-                      <p style="font-size: 0.8em; color: #777;">Regards,<br/>Child Health Development Team</p>
-                    </div>`
-            };
-
-            transporter.sendMail(mailOptions, async (error, info) => {
-              if (!error) {
-                await Vaccine.updateOne(
-                  { babyId: baby._id, vaccineName: vaccine.name },
-                  { sent: true },
-                  { upsert: true }
-                );
-                console.log(`Reminder sent to ${baby.email} for ${vaccine.name}`);
+              // Note: In real production, you'd handle mail errors gracefully per recipient
+              try {
+                await transporter.sendMail(mailOptions);
+                await Vaccine.findByIdAndUpdate(vaccine._id, { [updateField]: true });
+                console.log(`✅ [${tier.type}] Email sent to ${baby.email} for ${vaccine.vaccineName}`);
+              } catch (mailErr) {
+                console.error(`❌ Mail send error for ${baby.email}:`, mailErr.message);
               }
-            });
+            }
           }
         }
       } catch (err) {
-        console.error("Cron Error:", err);
+        console.error("❌ Cron Engine Error:", err);
       }
     });
   })

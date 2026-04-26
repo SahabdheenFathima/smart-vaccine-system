@@ -82,7 +82,8 @@ const DashboardPage = () => {
           <div className="grid-actions">
             {[
               { label: 'Milestones', path: '/milestones', icon: '🎯' },
-              { label: 'Profile History', path: '/baby-history', icon: '👶' }
+              { label: 'Profile History', path: '/baby-history', icon: '👶' },
+              { label: 'Smart Reminders', path: '/reminders', icon: '🔔' }
             ].map(action => (
               <button 
                 key={action.label} 
