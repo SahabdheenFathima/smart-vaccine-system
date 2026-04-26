@@ -6,6 +6,10 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const cors = require("cors");
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  credentials: true
+}));
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cron = require("node-cron");
@@ -23,7 +27,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_for_development_on
 const generateVaccines = require("./vaccineGenerator");
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 
 // Routes

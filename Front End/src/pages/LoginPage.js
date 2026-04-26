@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import Input from '../components/atoms/Input';
 import Button from '../components/atoms/Button';
 
+import API_BASE from '../config';
+
 const LoginPage = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [status, setStatus] = useState({ loading: false, success: false, error: '' });
@@ -12,7 +14,7 @@ const LoginPage = () => {
         e.preventDefault();
         setStatus({ loading: true, success: false, error: '' });
         try {
-            const res = await fetch("http://localhost:5001/login-user", {
+            const res = await fetch(`${API_BASE}/login-user`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),

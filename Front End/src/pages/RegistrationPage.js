@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Input from '../components/atoms/Input';
 import Button from '../components/atoms/Button';
+import API_BASE from '../config';
 
 const RegistrationPage = () => {
     const [formData, setFormData] = useState({ fname: '', email: '', password: '', role: 'PARENT' });
@@ -12,7 +13,7 @@ const RegistrationPage = () => {
         e.preventDefault();
         setStatus({ loading: true, success: false, error: '' });
         try {
-            const res = await fetch("http://localhost:5001/register", {
+            const res = await fetch(`${API_BASE}/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),

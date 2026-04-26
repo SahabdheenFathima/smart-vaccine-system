@@ -11,6 +11,8 @@ import Button from '../components/atoms/Button';
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend, Filler);
 
+import API_BASE from '../config';
+
 const AnalyticsPage = () => {
     const navigate = useNavigate();
     const [babies, setBabies] = useState([]);
@@ -22,8 +24,6 @@ const AnalyticsPage = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isDark, setIsDark] = useState(document.documentElement.getAttribute('data-theme') === 'dark');
-
-    const API_BASE = "http://localhost:5001";
 
     const fetchGrowthData = useCallback(async (email, babyId) => {
         try {
