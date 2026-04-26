@@ -27,12 +27,18 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-const vaccineRoutes = require("./routes/VaccineRoutes");
-const consultantRoutes = require("./routes/ConsultantRoutes");
-const bookingRoutes = require("./routes/BookingRoutes");
-app.use("/api/vaccines", vaccineRoutes);
-app.use("/api/consultants", consultantRoutes);
-app.use("/api/bookings", bookingRoutes);
+const vaccineRoutes         = require("./routes/VaccineRoutes");
+const consultantRoutes      = require("./routes/ConsultantRoutes");
+const bookingRoutes         = require("./routes/BookingRoutes");
+const adminRoutes           = require("./routes/AdminRoutes");
+const vaccineScheduleRoutes = require("./routes/VaccineScheduleRoutes");
+const clinicalNoteRoutes    = require("./routes/clinicalNoteRoutes");
+app.use("/api/vaccines",          vaccineRoutes);
+app.use("/api/consultants",       consultantRoutes);
+app.use("/api/bookings",          bookingRoutes);
+app.use("/api/admin",             adminRoutes);
+app.use("/api/vaccine-schedules", vaccineScheduleRoutes);
+app.use("/api/clinical-notes",    clinicalNoteRoutes);
 
 // MongoDB Connection
 mongoose.set("strictQuery", true);
@@ -40,8 +46,23 @@ const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/SmartSystem
 
 mongoose
   .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB");
+    // Seed the dynamic vaccine schedule collection if it is empty (first boot)
+    await vaccineScheduleRoutes.seed();
+
+    // ✅ Seed Default Admin for Demo
+    const adminExists = await User.findOne({ role: 'ADMIN' });
+    if (!adminExists) {
+      const hashedPassword = await bcrypt.hash("admin123", 10);
+      await User.create({
+        fname: "System Administrator",
+        email: "admin@smart.com",
+        password: hashedPassword,
+        role: "ADMIN"
+      });
+      console.log("👑 Demo Admin Created: admin@smart.com / admin123");
+    }
 
     // ✅ Start cron job after successful DB connection
     // Changed to daily at midnight (0 0 * * *) to avoid spam and save resources
@@ -130,14 +151,16 @@ mongoose
 
 // Auth routes
 app.post("/register", async (req, res) => {
-  const { fname, email, password } = req.body;
+  const { fname, email, password, role } = req.body;
   const lowerEmail = email.toLowerCase();
   try {
     const existingUser = await User.findOne({ email: lowerEmail });
     if (existingUser) return res.status(400).json({ status: "error", error: "User already exists" });
 
     const encryptedPassword = await bcrypt.hash(password, 10);
-    await User.create({ fname, email: lowerEmail, password: encryptedPassword });
+    // Role defaults to PARENT if not explicitly provided
+    const userRole = role && ['PARENT', 'ADMIN', 'CONSULTANT'].includes(role) ? role : 'PARENT';
+    await User.create({ fname, email: lowerEmail, password: encryptedPassword, role: userRole });
     res.json({ status: "ok" });
   } catch (error) {
     res.status(500).json({ status: "error", error: error.message });
@@ -154,7 +177,8 @@ app.post("/login-user", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ status: "error", error: "Invalid Password" });
 
-    const token = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: "24h" });
+    // Include role in JWT payload to avoid extra DB lookups in frontend
+    const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
     res.json({ status: "ok", data: token });
   } catch (error) {
     res.status(500).json({ status: "error", error: error.message });
@@ -196,10 +220,11 @@ app.post("/submit-form", async (req, res) => {
 
     if (savedBaby.birthDate && savedBaby.babyName && savedBaby.email) {
       try {
-        const generatedVaccines = generateVaccines(savedBaby.birthDate, savedBaby.babyName, savedBaby.email);
+        // generateVaccines is now async — reads from DB instead of static file
+        const generatedVaccines = await generateVaccines(savedBaby.birthDate, savedBaby.babyName, savedBaby.email);
         const vaccinesWithBabyId = generatedVaccines.map(v => ({ ...v, babyId: savedBaby._id }));
         await Vaccine.insertMany(vaccinesWithBabyId);
-        console.log("💉 Vaccines generated for:", savedBaby.babyName);
+        console.log("💉 Vaccines generated for:", savedBaby.babyName, "(", generatedVaccines.length, "doses)");
       } catch (vaccineErr) {
         console.error("❌ Vaccine Generation Error:", vaccineErr.message);
         // We still return success for the baby registration even if vaccines fail

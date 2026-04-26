@@ -21,8 +21,8 @@ router.get("/", async (req, res) => {
   try {
     const bookings = await Booking.find()
       .populate('parent_id', 'fname email')
-      .populate('child_id', 'babyName birthDate')
-      .populate('consultant_id', 'name department specialization')
+      .populate('child_id', 'babyName birthDate motherName weight height headCircumference')
+      .populate('consultant_id', 'name department specialization email')
       .sort({ created_at: -1 });
     res.json({ status: "ok", data: bookings });
   } catch (err) {

@@ -12,6 +12,8 @@ const consultantSchema = new mongoose.Schema({
   available_slots: { type: [String], required: true },
   status: { type: String, enum: ['Active', 'On Leave', 'Inactive'], default: 'Active' },
   profile_image: { type: String },
+  email:    { type: String, required: true, unique: true, trim: true, lowercase: true },
+  username: { type: String, required: true, unique: true, trim: true },
 });
 
 const Consultant = mongoose.model("Consultant", consultantSchema);

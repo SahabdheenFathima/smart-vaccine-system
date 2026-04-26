@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/templates/MainLayout';
-import Button from '../components/atoms/Button';
 
 const DashboardPage = () => {
   const [userData, setUserData] = useState(null);
@@ -19,7 +18,16 @@ const DashboardPage = () => {
           body: JSON.stringify({ token }),
         });
         const data = await res.json();
-        if (data.status === "ok") setUserData(data.data);
+        if (data.status === "ok") {
+          if (data.data.role === 'ADMIN') {
+            navigate('/admin-dashboard');
+            return;
+          } else if (data.data.role === 'CONSULTANT') {
+            navigate('/consultant-dashboard');
+            return;
+          }
+          setUserData(data.data);
+        }
         else navigate("/sign-in");
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
@@ -63,12 +71,12 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          <div className="card-premium h-full" onClick={() => navigate('/analytics')} style={{ cursor: 'pointer' }}>
-            <div className="badge-premium">Development</div>
-            <h3 className="text-title" style={{ fontSize: '1.75rem', marginTop: '1.5rem' }}>Growth & Vitals</h3>
-            <p className="text-muted" style={{ fontSize: '1rem', lineHeight: '1.7' }}>Analyze height, weight, and development milestones with interactive health charts.</p>
+          <div className="card-premium h-full" onClick={() => navigate('/parent/clinical-notes')} style={{ cursor: 'pointer', border: '2px solid var(--primary)' }}>
+            <div className="badge-premium" style={{ background: '#eff6ff', color: '#3b82f6', border: '1px solid #bfdbfe' }}>New Module</div>
+            <h3 className="text-title" style={{ fontSize: '1.75rem', marginTop: '1.5rem' }}>Clinical Notes</h3>
+            <p className="text-muted" style={{ fontSize: '1rem', lineHeight: '1.7' }}>Access treatment plans, prescriptions, and advice shared by your pediatrician securely.</p>
             <div className="flex-center mt-auto" style={{ color: 'var(--primary)', fontWeight: 800 }}>
-              Open Analytics <span style={{ marginLeft: '0.5rem' }}>&rarr;</span>
+              View Shared Notes <span style={{ marginLeft: '0.5rem' }}>&rarr;</span>
             </div>
           </div>
         </div>
@@ -82,10 +90,9 @@ const DashboardPage = () => {
           <div className="grid-actions">
             {[
               { label: 'Milestones', path: '/milestones', icon: '🎯' },
-              { label: 'Profile History', path: '/baby-history', icon: '👶' },
+              { label: 'Growth Chart', path: '/analytics', icon: '📈' },
               { label: 'Smart Reminders', path: '/reminders', icon: '🔔' },
-              { label: 'Consultations', path: '/book-consultation', icon: '🩺' },
-              { label: 'Admin (Staff)', path: '/admin-consultants', icon: '🏥' }
+              { label: 'Consultations', path: '/book-consultation', icon: '🩺' }
             ].map(action => (
               <button
                 key={action.label}

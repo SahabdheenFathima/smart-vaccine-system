@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MainLayout from '../components/templates/MainLayout';
+import AdminLayout from '../components/templates/AdminLayout';
 import toast from 'react-hot-toast';
 
 const AdminConsultantsPage = () => {
   const [userData, setUserData] = useState(null);
   const [consultants, setConsultants] = useState([]);
-  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -28,7 +27,6 @@ const AdminConsultantsPage = () => {
         if (data.status === "ok") {
           setUserData(data.data);
           fetchConsultants();
-          fetchBookings();
         } else {
           navigate("/sign-in");
         }
@@ -46,28 +44,24 @@ const AdminConsultantsPage = () => {
     } catch (err) { toast.error("Failed to fetch consultants"); }
   };
 
-  const fetchBookings = async () => {
-    try {
-      const res = await fetch("http://localhost:5001/api/bookings");
-      const data = await res.json();
-      if (data.status === "ok") setBookings(data.data);
-    } catch (err) { toast.error("Failed to fetch bookings"); }
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSaveConsultant = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const formData = new FormData(e.target);
     const consultantData = {
-      name: formData.get('name'),
+      name:            formData.get('name'),
+      email:           formData.get('email'),
       registration_no: formData.get('registration_no'),
-      specialization: formData.get('specialization'),
-      qualification: formData.get('qualification'),
-      experience: parseInt(formData.get('experience')),
-      hospital_name: formData.get('hospital_name'),
-      department: formData.get('department'),
-      available_days: formData.get('available_days').split(',').map(d => d.trim()),
+      specialization:  formData.get('specialization'),
+      qualification:   formData.get('qualification'),
+      experience:      parseInt(formData.get('experience')),
+      hospital_name:   formData.get('hospital_name'),
+      department:      formData.get('department'),
+      available_days:  formData.get('available_days').split(',').map(d => d.trim()),
       available_slots: formData.get('available_slots').split(',').map(s => s.trim()),
-      status: formData.get('status')
+      status:          formData.get('status')
     };
 
     try {
@@ -85,7 +79,11 @@ const AdminConsultantsPage = () => {
       const data = await res.json();
       
       if (data.status === "ok") {
-        toast.success(currentConsultant ? "Consultant updated" : "Consultant created");
+        if (!currentConsultant) {
+          toast.success(`✅ Consultant created! Login credentials sent to ${consultantData.email}`);
+        } else {
+          toast.success('Consultant profile updated');
+        }
         setIsConsultantModalOpen(false);
         fetchConsultants();
       } else {
@@ -93,24 +91,23 @@ const AdminConsultantsPage = () => {
       }
     } catch (err) {
       toast.error("An error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const updateBookingStatus = async (id, status, reason = "") => {
+  const handleDelete = async (consultant) => {
+    if (!window.confirm(`Permanently delete Dr. ${consultant.name}'s profile and system account?`)) return;
     try {
-      const res = await fetch(`http://localhost:5001/api/bookings/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, rejection_reason: reason }),
-      });
+      const res = await fetch(`http://localhost:5001/api/consultants/${consultant._id}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.status === "ok") {
-        toast.success(`Booking ${status.toLowerCase()}`);
-        fetchBookings();
+      if (data.status === 'ok') {
+        toast.success('Consultant and system account deleted');
+        fetchConsultants();
+      } else {
+        toast.error(data.error || 'Deletion failed');
       }
-    } catch (err) {
-      toast.error("Failed to update status");
-    }
+    } catch { toast.error('Failed to delete'); }
   };
 
   if (loading) return (
@@ -120,7 +117,7 @@ const AdminConsultantsPage = () => {
   );
 
   return (
-    <MainLayout user={userData}>
+    <AdminLayout user={userData}>
       <div className="container-full py-12 animate-slide">
         <header className="flex-center-between mb-big">
           <div>
@@ -133,28 +130,10 @@ const AdminConsultantsPage = () => {
         </header>
 
         {/* Dashboard Analytics Widgets */}
-        <div className="grid-main mb-big" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="grid-main mb-big" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
             <div className="card-premium" style={{ padding: '1.5rem' }}>
                 <h4 className="text-muted text-sm font-bold uppercase">Total Consultants</h4>
                 <p className="text-title" style={{ fontSize: '2.5rem', marginTop: '0.5rem', color: 'var(--primary)' }}>{consultants.length}</p>
-            </div>
-            <div className="card-premium" style={{ padding: '1.5rem' }}>
-                <h4 className="text-muted text-sm font-bold uppercase">Today's Bookings</h4>
-                <p className="text-title" style={{ fontSize: '2.5rem', marginTop: '0.5rem', color: 'var(--primary)' }}>
-                    {bookings.filter(b => new Date(b.created_at).toDateString() === new Date().toDateString()).length}
-                </p>
-            </div>
-            <div className="card-premium" style={{ padding: '1.5rem' }}>
-                <h4 className="text-muted text-sm font-bold uppercase">Pending Approvals</h4>
-                <p className="text-title" style={{ fontSize: '2.5rem', marginTop: '0.5rem', color: '#f59e0b' }}>
-                    {bookings.filter(b => b.status === 'Pending').length}
-                </p>
-            </div>
-            <div className="card-premium" style={{ padding: '1.5rem' }}>
-                <h4 className="text-muted text-sm font-bold uppercase">Priority Cases</h4>
-                <p className="text-title" style={{ fontSize: '2.5rem', marginTop: '0.5rem', color: '#ef4444' }}>
-                    {bookings.filter(b => b.priority_level === 'Urgent').length}
-                </p>
             </div>
         </div>
 
@@ -186,74 +165,13 @@ const AdminConsultantsPage = () => {
                   className="btn-outline-premium mt-auto" style={{ padding: '0.5rem' }}>
                   Edit Profile
                 </button>
+                <button
+                  onClick={() => handleDelete(c)}
+                  style={{ padding: '0.5rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
+                  🗑 Remove
+                </button>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* Appointments Section */}
-        <section>
-          <h2 className="text-title mb-6">Recent Appointments & Queue</h2>
-          <div className="card-premium" style={{ padding: 0, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Token</th>
-                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Patient</th>
-                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Consultant</th>
-                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Date & Time</th>
-                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Priority</th>
-                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status</th>
-                  <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map(b => (
-                  <tr key={b._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '1rem 1.5rem', fontWeight: 700, color: 'var(--primary)' }}>{b.token_no}</td>
-                    <td style={{ padding: '1rem 1.5rem' }}>{b.child_id?.babyName || 'Unknown'}</td>
-                    <td style={{ padding: '1rem 1.5rem' }}>Dr. {b.consultant_id?.name}</td>
-                    <td style={{ padding: '1rem 1.5rem' }}>
-                        {new Date(b.booking_date).toLocaleDateString()} at {b.booking_time}
-                    </td>
-                    <td style={{ padding: '1rem 1.5rem' }}>
-                        <span style={{ 
-                            padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
-                            background: b.priority_level === 'Urgent' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                            color: b.priority_level === 'Urgent' ? '#ef4444' : '#6b7280'
-                        }}>
-                            {b.priority_level}
-                        </span>
-                    </td>
-                    <td style={{ padding: '1rem 1.5rem' }}>
-                        <span style={{ 
-                            padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
-                            background: b.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : 
-                                        b.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            color: b.status === 'Approved' ? '#10b981' : 
-                                   b.status === 'Pending' ? '#f59e0b' : '#ef4444'
-                        }}>
-                            {b.status}
-                        </span>
-                    </td>
-                    <td style={{ padding: '1rem 1.5rem', display: 'flex', gap: '0.5rem' }}>
-                        {b.status === 'Pending' && (
-                            <>
-                                <button onClick={() => updateBookingStatus(b._id, 'Approved')} style={{ padding: '0.25rem 0.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>Approve</button>
-                                <button onClick={() => {
-                                    const reason = window.prompt("Rejection Reason:");
-                                    if(reason) updateBookingStatus(b._id, 'Rejected', reason);
-                                }} style={{ padding: '0.25rem 0.5rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>Reject</button>
-                            </>
-                        )}
-                        {b.status === 'Approved' && (
-                            <button onClick={() => updateBookingStatus(b._id, 'Completed')} style={{ padding: '0.25rem 0.5rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>Mark Done</button>
-                        )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </section>
 
@@ -273,6 +191,14 @@ const AdminConsultantsPage = () => {
                         <input name="registration_no" defaultValue={currentConsultant?.registration_no} required className="input-premium w-full" />
                     </div>
                 </div>
+
+                {/* Email — only required when creating, hidden during edit */}
+                {!currentConsultant && (
+                  <div style={{ background: 'rgba(79,70,229,0.05)', border: '1px solid rgba(79,70,229,0.2)', borderRadius: '10px', padding: '1rem' }}>
+                    <label className="text-sm font-bold mb-2 block" style={{ color: 'var(--primary)' }}>📧 Consultant Email (Login credentials will be sent here)</label>
+                    <input name="email" type="email" required className="input-premium w-full" placeholder="consultant@hospital.gov.lk" />
+                  </div>
+                )}
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div>
@@ -332,14 +258,16 @@ const AdminConsultantsPage = () => {
 
                 <div className="flex justify-end gap-4 mt-6">
                   <button type="button" onClick={() => setIsConsultantModalOpen(false)} className="btn-outline-premium">Cancel</button>
-                  <button type="submit" className="btn-premium">Save Consultant</button>
+                  <button type="submit" className="btn-premium" disabled={isSubmitting}>
+                    {isSubmitting ? (currentConsultant ? 'Saving...' : 'Creating & Sending Email...') : (currentConsultant ? 'Save Changes' : 'Create & Send Credentials')}
+                  </button>
                 </div>
               </form>
             </div>
           </div>
         )}
       </div>
-    </MainLayout>
+    </AdminLayout>
   );
 };
 

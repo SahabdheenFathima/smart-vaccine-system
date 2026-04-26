@@ -4,7 +4,7 @@ import Input from '../components/atoms/Input';
 import Button from '../components/atoms/Button';
 
 const RegistrationPage = () => {
-    const [formData, setFormData] = useState({ fname: '', email: '', password: '' });
+    const [formData, setFormData] = useState({ fname: '', email: '', password: '', role: 'PARENT' });
     const [status, setStatus] = useState({ loading: false, success: false, error: '' });
     const navigate = useNavigate();
 
@@ -126,6 +126,9 @@ const RegistrationPage = () => {
                             value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             disabled={status.success}
                         />
+
+                        {/* Role selection removed for demo — defaults to PARENT */}
+
                         
                         {status.error && (
                             <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 800 }}>
