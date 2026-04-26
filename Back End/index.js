@@ -65,89 +65,113 @@ mongoose
     }
 
     // ✅ Start cron job after successful DB connection
-    // Changed to daily at midnight (0 0 * * *) to avoid spam and save resources
-    cron.schedule('0 0 * * *', async () => {
-      try {
-        console.log("⏰ Smart Reminder Engine: Daily Processing Started...");
-        const babies = await Baby.find();
-        if (!babies.length) return;
-
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-          }
-        });
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        for (const baby of babies) {
-          const babyVaccines = await Vaccine.find({ babyId: baby._id, got: false });
-
-          for (const vaccine of babyVaccines) {
-            const scheduledDate = new Date(vaccine.scheduleDate);
-            scheduledDate.setHours(0, 0, 0, 0);
-            const diffDays = Math.round((scheduledDate - today) / (1000 * 60 * 60 * 24));
-
-            let tier = null;
-            let updateField = "";
-
-            if (diffDays < 0 && !vaccine.missedReminderSent) {
-              tier = { type: "MISSED", subject: `🚨 ACTION REQUIRED: Missed Vaccine for ${baby.babyName}` };
-              updateField = "missedReminderSent";
-            } else if ((diffDays === 1 || diffDays === 0) && !vaccine.urgentReminderSent) {
-              tier = { type: "URGENT", subject: `⚡ URGENT: Vaccine Due Tomorrow for ${baby.babyName}` };
-              updateField = "urgentReminderSent";
-            } else if (diffDays <= 7 && diffDays > 1 && !vaccine.softReminderSent) {
-              tier = { type: "SOFT", subject: `🔔 Upcoming Vaccine Reminder: ${baby.babyName}` };
-              updateField = "softReminderSent";
-            }
-
-            if (tier) {
-              const mailOptions = {
-                from: `"Smart Vaccine System" <${process.env.EMAIL_USER}>`,
-                to: baby.email,
-                subject: tier.subject,
-                html: `<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #333; background: #f9fafb; border-radius: 15px;">
-                        <div style="background: white; padding: 25px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                          <h2 style="color: ${tier.type === 'MISSED' ? '#ef4444' : tier.type === 'URGENT' ? '#f59e0b' : '#4F46E5'}; margin-top: 0;">${tier.type} Notification</h2>
-                          <p>Dear Parent,</p>
-                          <p>This is a <strong>${tier.type.toLowerCase()}</strong> reminder regarding <strong>${baby.babyName}'s</strong> health schedule.</p>
-                          <div style="margin: 20px 0; padding: 15px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid ${tier.type === 'MISSED' ? '#ef4444' : tier.type === 'URGENT' ? '#f59e0b' : '#4F46E5'};">
-                            <strong>Vaccine:</strong> ${vaccine.vaccineName}<br/>
-                            <strong>Status:</strong> ${tier.type === 'MISSED' ? 'OVERDUE' : 'Scheduled'}<br/>
-                            <strong>Date:</strong> ${scheduledDate.toDateString()}
-                          </div>
-                          <p>Please log in to your dashboard to view full details and mark as administered once complete.</p>
-                          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;"/>
-                          <p style="font-size: 0.85em; color: #6b7280; line-height: 1.5;">
-                            Regards,<br/>
-                            <strong>Smart System Health Team</strong><br/>
-                            Professional Healthcare Management
-                          </p>
-                        </div>
-                      </div>`
-              };
-
-              // Note: In real production, you'd handle mail errors gracefully per recipient
-              try {
-                await transporter.sendMail(mailOptions);
-                await Vaccine.findByIdAndUpdate(vaccine._id, { [updateField]: true });
-                console.log(`✅ [${tier.type}] Email sent to ${baby.email} for ${vaccine.vaccineName}`);
-              } catch (mailErr) {
-                console.error(`❌ Mail send error for ${baby.email}:`, mailErr.message);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error("❌ Cron Engine Error:", err);
-      }
+    // Runs daily at 8:00 AM to send vaccine reminder emails
+    cron.schedule('0 8 * * *', async () => {
+      console.log("⏰ Smart Reminder Engine: Daily Processing Started...");
+      await runReminderEngine();
     });
+
+    console.log("✅ Vaccine Reminder Cron Job scheduled (daily at 8:00 AM)");
   })
   .catch((e) => console.log("MongoDB connection error:", e));
+
+// ─── Core Reminder Engine (extracted so cron + manual trigger share the same logic) ───
+async function runReminderEngine() {
+  try {
+    // FIX: Query vaccines directly by email (babyId was never reliably stored)
+    // Group unique parent emails from all pending vaccines
+    const pendingVaccines = await Vaccine.find({ got: false });
+
+    if (!pendingVaccines.length) {
+      console.log("📭 No pending vaccines found.");
+      return { sent: 0, skipped: 0, errors: 0 };
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    // Verify transporter config before mass send
+    await transporter.verify();
+    console.log(`📧 SMTP connection verified. Processing ${pendingVaccines.length} pending vaccines...`);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let sent = 0, skipped = 0, errors = 0;
+
+    for (const vaccine of pendingVaccines) {
+      // FIX: Use vaccine.email directly — this is always the parent email
+      const parentEmail = vaccine.email;
+      if (!parentEmail || parentEmail === 'No Email') { skipped++; continue; }
+
+      const scheduledDate = new Date(vaccine.scheduleDate);
+      scheduledDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((scheduledDate - today) / (1000 * 60 * 60 * 24));
+
+      let tier = null;
+      let updateField = "";
+
+      if (diffDays < 0 && !vaccine.missedReminderSent) {
+        tier = { type: "MISSED", color: '#ef4444', subject: `🚨 ACTION REQUIRED: Missed Vaccine for ${vaccine.babyName}` };
+        updateField = "missedReminderSent";
+      } else if (diffDays <= 1 && diffDays >= 0 && !vaccine.urgentReminderSent) {
+        tier = { type: "URGENT", color: '#f59e0b', subject: `⚡ URGENT: Vaccine Due ${diffDays === 0 ? 'Today' : 'Tomorrow'} for ${vaccine.babyName}` };
+        updateField = "urgentReminderSent";
+      } else if (diffDays <= 7 && diffDays > 1 && !vaccine.softReminderSent) {
+        tier = { type: "SOFT", color: '#5C59E8', subject: `🔔 Upcoming Vaccine Reminder for ${vaccine.babyName}` };
+        updateField = "softReminderSent";
+      }
+
+      if (!tier) { skipped++; continue; }
+
+      try {
+        await transporter.sendMail({
+          from: `"Smart Vaccine System" <${process.env.EMAIL_USER}>`,
+          to: parentEmail,
+          subject: tier.subject,
+          html: `
+            <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;padding:30px;background:#f9fafb;">
+              <div style="background:#fff;padding:28px;border-radius:14px;border:1px solid #e5e7eb;box-shadow:0 4px 12px rgba(0,0,0,0.08);max-width:580px;margin:0 auto;">
+                <div style="background:${tier.color};border-radius:10px;padding:16px 20px;margin-bottom:22px;">
+                  <h2 style="color:#fff;margin:0;font-size:1.2rem;">💉 ${tier.type} Vaccine Reminder</h2>
+                </div>
+                <p style="color:#374151;margin-bottom:8px;">Dear Parent,</p>
+                <p style="color:#374151;">This is a <strong>${tier.type.toLowerCase()}</strong> reminder about <strong>${vaccine.babyName}</strong>'s scheduled vaccination.</p>
+                <div style="margin:20px 0;padding:18px;background:#f8fafc;border-radius:10px;border-left:4px solid ${tier.color};">
+                  <table style="width:100%;border-collapse:collapse;">
+                    <tr><td style="padding:4px 0;color:#6b7280;font-size:0.875rem;">💉 Vaccine</td><td style="padding:4px 0;font-weight:700;color:#1e293b;">${vaccine.vaccineName}</td></tr>
+                    <tr><td style="padding:4px 0;color:#6b7280;font-size:0.875rem;">📅 Scheduled</td><td style="padding:4px 0;font-weight:700;color:#1e293b;">${scheduledDate.toDateString()}</td></tr>
+                    <tr><td style="padding:4px 0;color:#6b7280;font-size:0.875rem;">⚠️ Status</td><td style="padding:4px 0;font-weight:700;color:${tier.color};">${tier.type === 'MISSED' ? 'OVERDUE – Please act immediately' : tier.type === 'URGENT' ? 'Due very soon' : 'Coming up in ' + diffDays + ' days'}</td></tr>
+                  </table>
+                </div>
+                <p style="color:#374151;">Please visit your dashboard to view the full schedule and mark vaccines as administered.</p>
+                <hr style="border:0;border-top:1px solid #e5e7eb;margin:22px 0;"/>
+                <p style="font-size:0.8rem;color:#9ca3af;">This is an automated message from <strong>Smart Child Vaccine &amp; Clinic System</strong>. Do not reply to this email.</p>
+              </div>
+            </div>`
+        });
+
+        await Vaccine.findByIdAndUpdate(vaccine._id, { [updateField]: true });
+        console.log(`✅ [${tier.type}] Sent to ${parentEmail} → ${vaccine.vaccineName}`);
+        sent++;
+      } catch (mailErr) {
+        console.error(`❌ Mail error for ${parentEmail} (${vaccine.vaccineName}):`, mailErr.message);
+        errors++;
+      }
+    }
+
+    console.log(`📊 Reminder Engine Complete — Sent: ${sent}, Skipped: ${skipped}, Errors: ${errors}`);
+    return { sent, skipped, errors };
+  } catch (err) {
+    console.error("❌ Reminder Engine Fatal Error:", err);
+    throw err;
+  }
+}
 
 // Auth routes
 app.post("/register", async (req, res) => {
