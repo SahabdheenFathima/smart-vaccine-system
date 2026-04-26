@@ -28,7 +28,11 @@ app.use(express.json());
 
 // Routes
 const vaccineRoutes = require("./routes/VaccineRoutes");
+const consultantRoutes = require("./routes/ConsultantRoutes");
+const bookingRoutes = require("./routes/BookingRoutes");
 app.use("/api/vaccines", vaccineRoutes);
+app.use("/api/consultants", consultantRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 // MongoDB Connection
 mongoose.set("strictQuery", true);
@@ -60,7 +64,7 @@ mongoose
 
         for (const baby of babies) {
           const babyVaccines = await Vaccine.find({ babyId: baby._id, got: false });
-          
+
           for (const vaccine of babyVaccines) {
             const scheduledDate = new Date(vaccine.scheduleDate);
             scheduledDate.setHours(0, 0, 0, 0);
@@ -172,12 +176,12 @@ app.post("/userData", async (req, res) => {
 app.post("/submit-form", async (req, res) => {
   try {
     console.log("📥 Received Baby Registration Payload:", req.body);
-    
+
     // Ensure birthDate is a valid Date object if provided
     if (req.body.birthDate) {
       const bDate = new Date(req.body.birthDate);
       if (isNaN(bDate.getTime())) {
-          return res.status(400).json({ status: "error", error: "Invalid birth date provided" });
+        return res.status(400).json({ status: "error", error: "Invalid birth date provided" });
       }
       req.body.birthDate = bDate;
     }
@@ -189,7 +193,7 @@ app.post("/submit-form", async (req, res) => {
     const baby = new Baby(req.body);
     const savedBaby = await baby.save();
     console.log("✅ Baby successfully stored in database:", savedBaby._id);
-    
+
     if (savedBaby.birthDate && savedBaby.babyName && savedBaby.email) {
       try {
         const generatedVaccines = generateVaccines(savedBaby.birthDate, savedBaby.babyName, savedBaby.email);
@@ -201,7 +205,7 @@ app.post("/submit-form", async (req, res) => {
         // We still return success for the baby registration even if vaccines fail
       }
     }
-    
+
     res.status(201).json({ status: "ok", message: "Baby data saved successfully" });
   } catch (err) {
     console.error("❌ Registration Database Error:", err.message);
@@ -243,13 +247,13 @@ app.get("/api/user-babies/:email", async (req, res) => {
 app.delete("/api/baby/:id", async (req, res) => {
   try {
     const babyId = req.params.id;
-    
+
     // 1. Delete the baby record
     await Baby.findByIdAndDelete(babyId);
-    
+
     // 2. Cascade delete associated vaccines
     await Vaccine.deleteMany({ babyId });
-    
+
     // 3. Cascade delete associated growth analytics
     await Growth.deleteMany({ babyId });
 

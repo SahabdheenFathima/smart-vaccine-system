@@ -13,6 +13,8 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import DevelopmentStagesPage from "./pages/DevelopmentStagesPage";
 import BabyHistoryPage from "./pages/BabyHistoryPage";
 import RemindersDashboardPage from "./pages/RemindersDashboardPage";
+import AdminConsultantsPage from "./pages/AdminConsultantsPage";
+import BookConsultationPage from "./pages/BookConsultationPage";
 
 // Original components (kept for fallback/reference if needed)
 // import SignIn from "./components/SignIn";
@@ -36,14 +38,14 @@ function App() {
           {/* Public Routes */}
           <Route path="/sign-in" element={<LoginPage />} />
           <Route path="/sign-up" element={<RegistrationPage />} />
-          
+
           {/* Protected Routes */}
           <Route path="/" element={
             <ProtectedRoute>
               <DashboardPage />
             </ProtectedRoute>
           } />
-          
+
           <Route path="/dashbord" element={
             <ProtectedRoute>
               <DashboardPage />
@@ -83,6 +85,18 @@ function App() {
           <Route path="/reminders" element={
             <ProtectedRoute>
               <RemindersDashboardPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin-consultants" element={
+            <ProtectedRoute>
+              <AdminConsultantsPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/book-consultation" element={
+            <ProtectedRoute>
+              <BookConsultationPage />
             </ProtectedRoute>
           } />
 

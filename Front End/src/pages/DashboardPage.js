@@ -83,10 +83,12 @@ const DashboardPage = () => {
             {[
               { label: 'Milestones', path: '/milestones', icon: '🎯' },
               { label: 'Profile History', path: '/baby-history', icon: '👶' },
-              { label: 'Smart Reminders', path: '/reminders', icon: '🔔' }
+              { label: 'Smart Reminders', path: '/reminders', icon: '🔔' },
+              { label: 'Consultations', path: '/book-consultation', icon: '🩺' },
+              { label: 'Admin (Staff)', path: '/admin-consultants', icon: '🏥' }
             ].map(action => (
-              <button 
-                key={action.label} 
+              <button
+                key={action.label}
                 className="btn-outline-premium"
                 onClick={() => handleQuickAction(action.path)}
               >
