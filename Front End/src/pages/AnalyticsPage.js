@@ -16,6 +16,8 @@ const AnalyticsPage = () => {
     const [babies, setBabies] = useState([]);
     const [selectedBabyId, setSelectedBabyId] = useState("");
     const [height, setHeight] = useState("");
+    const [weight, setWeight] = useState("");
+    const [manualMonth, setManualMonth] = useState("");
     const [data, setData] = useState([]);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -99,11 +101,15 @@ const AnalyticsPage = () => {
                     email: user.email,
                     babyId: selectedBabyId,
                     age: calculatedAge,
-                    height
+                    month: manualMonth || calculatedAge,
+                    height,
+                    weight
                 });
                 if (res.data.status === "ok") {
                     setData(prev => [...prev, res.data.data].sort((a, b) => a.age - b.age));
                     setHeight("");
+                    setWeight("");
+                    setManualMonth("");
                     toast.success("Measurement saved successfully");
                 }
             } catch (err) {
@@ -300,13 +306,19 @@ const AnalyticsPage = () => {
                             </div>
                             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">
-                                        Baby's Age: {babies.find(b => b._id === selectedBabyId) ? `${calculateAgeInMonths(babies.find(b => b._id === selectedBabyId).birthDate)} Months (Auto-calculated)` : 'Unknown'}
-                                    </label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">Month (Optional Override)</label>
+                                    <Input type="number" value={manualMonth} onChange={(e) => setManualMonth(e.target.value)} placeholder="e.g. 12" className="input-field" />
+                                    <small className="text-xs text-slate-400 ml-1">Leave empty to auto-calculate based on birth date ({babies.find(b => b._id === selectedBabyId) ? calculateAgeInMonths(babies.find(b => b._id === selectedBabyId).birthDate) : '0'}m)</small>
                                 </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">Height (CM)</label>
-                                    <Input type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="e.g. 75.5" required className="input-field" />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">Height (CM)</label>
+                                        <Input type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="e.g. 75.5" required className="input-field" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-2 block">Weight (KG)</label>
+                                        <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="e.g. 9.2" className="input-field" />
+                                    </div>
                                 </div>
                                 <Button type="submit" className="btn-premium w-full mt-2">
                                     <span>Sync to Database</span>
@@ -351,7 +363,14 @@ const AnalyticsPage = () => {
                                         </div>
                                         <div>
                                             <span className="text-xs font-bold text-slate-400 uppercase block">{item.age} Months</span>
-                                            <span className="text-lg font-bold">{item.height} <small className="text-xs font-normal text-muted">cm</small></span>
+                                            <div className="flex-center" style={{ gap: '0.75rem' }}>
+                                                <span className="text-lg font-bold">{item.height} <small className="text-xs font-normal text-muted">cm</small></span>
+                                                {item.weight && (
+                                                    <span className="text-lg font-bold" style={{ color: 'var(--primary)' }}>
+                                                        {item.weight} <small className="text-xs font-normal text-muted">kg</small>
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                     <button onClick={() => handleDelete(item._id, index)} className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-50 text-red-500 flex-center justify-center transition-all hover:bg-red-500 hover:text-white">

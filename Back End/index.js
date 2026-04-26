@@ -317,13 +317,15 @@ app.delete("/api/baby/:id", async (req, res) => {
 // --- Growth Analytics Routes ---
 app.post("/api/growth", async (req, res) => {
   try {
-    const { email, age, height } = req.body;
-    // Find babyId if possible to link
+    const { email, age, month, height, weight } = req.body;
     const baby = await Baby.findOne({ email }).sort({ _id: -1 });
+    const resolvedAge = month != null ? Number(month) : Number(age);
     const growth = new Growth({
       email,
-      age: parseInt(age),
+      age: resolvedAge,
+      month: resolvedAge,
       height: parseFloat(height),
+      weight: weight != null ? parseFloat(weight) : undefined,
       babyId: baby ? baby._id : null
     });
     await growth.save();
