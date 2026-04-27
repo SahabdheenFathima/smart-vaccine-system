@@ -120,7 +120,7 @@ const LoginPage = () => {
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                 <label style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Password</label>
-                                <a href="#" style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}>Forgot Password?</a>
+                                <a href="#!" onClick={(e) => e.preventDefault()} style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}>Forgot Password?</a>
                             </div>
                             <Input 
                                 type="password" placeholder="••••••••" required

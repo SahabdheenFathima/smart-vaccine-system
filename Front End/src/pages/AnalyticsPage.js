@@ -5,13 +5,11 @@ import { toast } from "react-hot-toast";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend, Filler } from "chart.js";
 import MainLayout from '../components/templates/MainLayout';
-import Card from '../components/atoms/Card';
 import Input from '../components/atoms/Input';
 import Button from '../components/atoms/Button';
+import API_BASE from '../config';
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend, Filler);
-
-import API_BASE from '../config';
 
 const AnalyticsPage = () => {
     const navigate = useNavigate();
