@@ -8,7 +8,7 @@ import axios from 'axios';
 const BabyFormPage = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        babyName: '', birthDate: '', motherName: '', motherAge: '',
+        babyName: '', birthDate: '', gender: '', motherName: '', motherAge: '',
         address: '', weight: '', height: '', headCircumference: '',
         deliveryMethod: 'Normal', email: '', numberOfBabies: '1', additionalInfo: ''
     });
@@ -39,11 +39,11 @@ const BabyFormPage = () => {
         e.preventDefault();
         
         // Final Validation Check
-        if (!formData.babyName || !formData.birthDate || !formData.email) {
+        if (!formData.babyName || !formData.birthDate || !formData.email || !formData.gender) {
             setStatus({ 
                 loading: false, 
                 success: false, 
-                error: "Please ensure Baby Name, Birth Date, and Contact Email are provided." 
+                error: "Please ensure Baby Name, Birth Date, Gender, and Contact Email are provided." 
             });
             return;
         }
@@ -86,6 +86,29 @@ const BabyFormPage = () => {
                             <div className="grid-main">
                                 <Input label="Baby's Full Name" name="babyName" placeholder="Enter baby's name" required value={formData.babyName} onChange={handleChange} />
                                 <Input label="Date of Birth" name="birthDate" type="date" required value={formData.birthDate} onChange={handleChange} />
+                                
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                                    <label style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Gender</label>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        {['Male', 'Female'].map(g => (
+                                            <label 
+                                                key={g} 
+                                                style={{ 
+                                                    flex: 1, padding: '0.875rem', border: '2px solid', borderRadius: '1rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', 
+                                                    borderColor: formData.gender === g ? 'var(--primary)' : 'var(--border-color)', 
+                                                    background: formData.gender === g ? 'var(--primary-glow)' : 'transparent',
+                                                    color: formData.gender === g ? 'var(--primary)' : 'var(--text-primary)',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.9375rem'
+                                                }}
+                                            >
+                                                <input type="radio" name="gender" value={g} style={{ display: 'none' }} checked={formData.gender === g} onChange={handleChange} />
+                                                {g}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <Input label="Mother's Name" name="motherName" placeholder="Enter mother's name" value={formData.motherName} onChange={handleChange} />
                                 <Input label="Mother's Age" name="motherAge" type="number" placeholder="Enter age" value={formData.motherAge} onChange={handleChange} />
                             </div>

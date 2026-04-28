@@ -30,18 +30,18 @@ const generateVaccines = require("./vaccineGenerator");
 app.use(express.json());
 
 // Routes
-const vaccineRoutes         = require("./routes/VaccineRoutes");
-const consultantRoutes      = require("./routes/ConsultantRoutes");
-const bookingRoutes         = require("./routes/BookingRoutes");
-const adminRoutes           = require("./routes/AdminRoutes");
+const vaccineRoutes = require("./routes/VaccineRoutes");
+const consultantRoutes = require("./routes/ConsultantRoutes");
+const bookingRoutes = require("./routes/BookingRoutes");
+const adminRoutes = require("./routes/AdminRoutes");
 const vaccineScheduleRoutes = require("./routes/VaccineScheduleRoutes");
-const clinicalNoteRoutes    = require("./routes/clinicalNoteRoutes");
-app.use("/api/vaccines",          vaccineRoutes);
-app.use("/api/consultants",       consultantRoutes);
-app.use("/api/bookings",          bookingRoutes);
-app.use("/api/admin",             adminRoutes);
+const clinicalNoteRoutes = require("./routes/clinicalNoteRoutes");
+app.use("/api/vaccines", vaccineRoutes);
+app.use("/api/consultants", consultantRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/vaccine-schedules", vaccineScheduleRoutes);
-app.use("/api/clinical-notes",    clinicalNoteRoutes);
+app.use("/api/clinical-notes", clinicalNoteRoutes);
 
 // MongoDB Connection
 mongoose.set("strictQuery", true);
@@ -68,13 +68,14 @@ mongoose
     }
 
     // ✅ Start cron job after successful DB connection
-    // Runs daily at 8:00 AM to send vaccine reminder emails
-    cron.schedule('0 8 * * *', async () => {
-      console.log("⏰ Smart Reminder Engine: Daily Processing Started...");
+    // Runs every 1 minute to check for unsent reminders
+    //If we need to check every day at 8:00 AM use this cron =  '0 8 * * *'
+    cron.schedule('* * * * *', async () => {
+      console.log("⏰ Smart Reminder Engine: Checking for unsent reminders...");
       await runReminderEngine();
     });
 
-    console.log("✅ Vaccine Reminder Cron Job scheduled (daily at 8:00 AM)");
+    console.log("✅ Vaccine Reminder Cron Job scheduled (every 1 minute)");
   })
   .catch((e) => console.log("MongoDB connection error:", e));
 

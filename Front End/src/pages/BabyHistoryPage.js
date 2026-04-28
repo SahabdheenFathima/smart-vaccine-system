@@ -226,6 +226,7 @@ const BabyHistoryPage = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
                                         <h4 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '-0.5rem' }}>Guardian & Identity</h4>
                                         <DetailItem label="Mother's Full Name" value={baby.motherName} icon="👩‍👦" />
+                                        <DetailItem label="Gender" value={baby.gender} icon={baby.gender === 'Male' ? '👦' : baby.gender === 'Female' ? '👧' : '👶'} />
                                         <DetailItem label="Maternal Age" value={baby.motherAge} unit="yrs" icon="📅" />
                                         <DetailItem label="Registered Email" value={baby.email} icon="📧" />
                                     </div>

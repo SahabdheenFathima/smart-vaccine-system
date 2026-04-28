@@ -178,6 +178,10 @@ const AdminChildrenPage = () => {
                           <span className="font-bold">{new Date(selectedChild.birthDate).toLocaleDateString()}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="text-muted font-semibold">Gender:</span>
+                          <span className="font-bold">{selectedChild.gender || 'Not Specified'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span className="text-muted font-semibold">Delivery Method:</span>
                           <span className="font-bold">{selectedChild.deliveryMethod || 'N/A'}</span>
                       </div>

@@ -6,6 +6,7 @@ const babySchema = new mongoose.Schema({
   motherName: String,
   motherAge: String,
   address: String,
+  gender: String,
   numberOfBabies: String,
   weight: String,
   height: String,
