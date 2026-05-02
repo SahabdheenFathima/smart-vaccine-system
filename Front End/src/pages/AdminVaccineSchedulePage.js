@@ -15,6 +15,7 @@ const EMPTY_FORM = {
   vaccineCode: '',
   doseOrder: 1,
   recommendedAgeLabel: '',
+  description: '',
   priorityLevel: 'Medium',
   status: 'Active',
   notes: '',
@@ -77,6 +78,7 @@ const AdminVaccineSchedulePage = () => {
       vaccineCode:          form.vaccineCode,
       doseOrder:            Number(form.doseOrder),
       recommendedAgeLabel:  form.recommendedAgeLabel,
+      description:          form.description,
       priorityLevel:        form.priorityLevel,
       status:               form.status,
       notes:                form.notes,
@@ -116,6 +118,7 @@ const AdminVaccineSchedulePage = () => {
       priorityLevel:       rule.priorityLevel,
       status:              rule.status,
       notes:               rule.notes || '',
+      description:         rule.description || '',
       scheduleType,
       scheduleValue,
     });
@@ -251,7 +254,7 @@ const AdminVaccineSchedulePage = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)' }}>
-                {['Vaccine Name', 'Code', 'Dose Order', 'Schedule Rule', 'Age Label', 'Priority', 'Status', 'Actions'].map(h => (
+                {['Vaccine Name', 'Code', 'Dose', 'Schedule', 'Age Label', 'Description', 'Priority', 'Status', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '1.1rem 1.25rem', fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -279,6 +282,11 @@ const AdminVaccineSchedulePage = () => {
                     <td style={{ padding: '1rem 1.25rem', fontWeight: 700 }}>Dose {rule.doseOrder}</td>
                     <td style={{ padding: '1rem 1.25rem', fontWeight: 700, color: 'var(--primary)' }}>{scheduleDisplay}</td>
                     <td style={{ padding: '1rem 1.25rem', color: 'var(--text-secondary)' }}>{rule.recommendedAgeLabel || '—'}</td>
+                    <td style={{ padding: '1rem 1.25rem', maxWidth: '160px' }}>
+                      <p style={{ fontSize:'0.82rem', color:'#64748B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={rule.description}>
+                        {rule.description || <span style={{ opacity:0.4 }}>—</span>}
+                      </p>
+                    </td>
                     <td style={{ padding: '1rem 1.25rem' }}>
                       <span style={{ padding: '0.3rem 0.7rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, background: pc.bg, color: pc.color }}>
                         {rule.priorityLevel}
@@ -389,6 +397,17 @@ const AdminVaccineSchedulePage = () => {
                     onChange={e => setForm({...form, recommendedAgeLabel: e.target.value})}
                     placeholder="e.g. 2 Months" />
                 </div>
+              </div>
+
+              <div style={fieldStyle}>
+                <div style={{ display:'flex', justifyContent:'space-between' }}>
+                  <label style={labelStyle}>Vaccine Description</label>
+                  <span style={{ fontSize:'0.75rem', color: (form.description||'').length > 250 ? '#ef4444' : 'var(--text-secondary)' }}>{(form.description||'').length}/300</span>
+                </div>
+                <textarea className="input-premium w-full" style={{ minHeight:'80px', resize:'vertical' }}
+                  maxLength={300} value={form.description||''}
+                  onChange={e => setForm({...form, description: e.target.value})}
+                  placeholder="Brief clinical description of this vaccine and its purpose..."/>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>

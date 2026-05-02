@@ -13,10 +13,13 @@ const AdminLayout = ({ children, user }) => {
     { name: 'Dashboard Overview', path: '/admin-dashboard', icon: '📊' },
     { name: 'Parent Management', path: '/admin-parents', icon: '👪' },
     { name: 'Child Profiles', path: '/admin-children', icon: '👶' },
+    { name: 'Growth Management', path: '/admin-growth', icon: '📈' },
+    { name: 'Milestone Monitoring', path: '/admin-milestones', icon: '📝' },
     { name: 'Consultant Directory', path: '/admin-consultants', icon: '🩺' },
     { name: 'Appointment Center', path: '/admin-appointments', icon: '📅' },
 
     { name: 'Vaccine Schedules', path: '/admin-vaccine-schedules', icon: '🗓️' },
+    { name: 'Vaccination Registry', path: '/admin-vaccines', icon: '💉' },
     { name: 'Queue & Token Desk', path: '/admin-queue', icon: '📟' },
     { name: 'Notification Center', path: '/admin-notifications', icon: '📢' },
     { name: 'Reports & Analytics', path: '/admin-reports', icon: '📈' },

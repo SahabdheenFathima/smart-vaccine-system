@@ -8,6 +8,7 @@ const GrowthSchema = new mongoose.Schema(
     month: { type: Number },                     // manual month override (same as age, kept for UI clarity)
     height: { type: Number, required: true },    // height in cm
     weight: { type: Number },                    // weight in kg
+    headCircumference: { type: Number },         // head circumference in cm (optional)
     date: { type: Date, default: Date.now },
   },
   {

@@ -5,10 +5,6 @@
  */
 const VaccineScheduleRule = require("./models/VaccineScheduleRule");
 
-/**
- * Resolves the canonical number of days for a schedule rule.
- * Priority: daysAfterBirth > weeksAfterBirth > monthsAfterBirth > yearsAfterBirth
- */
 const resolveCanonicalDays = (rule) => {
   if (rule.daysAfterBirth   != null) return rule.daysAfterBirth;
   if (rule.weeksAfterBirth  != null) return Math.round(rule.weeksAfterBirth  * 7);
@@ -17,14 +13,7 @@ const resolveCanonicalDays = (rule) => {
   return 0;
 };
 
-/**
- * generateVaccines — async, DB-driven
- * @param {Date}   birthDate - Baby's date of birth
- * @param {string} babyName  - Baby's name
- * @param {string} email     - Parent email
- * @returns {Promise<Array>} - Array of Vaccine documents ready for insertMany
- */
-const generateVaccines = async (birthDate, babyName, email) => {
+const generateVaccines = async (birthDate, babyName, email, babyId) => {
   const rules = await VaccineScheduleRule.find({ status: "Active" }).sort({ daysAfterBirth: 1 });
 
   return rules.map((rule) => {
@@ -33,10 +22,16 @@ const generateVaccines = async (birthDate, babyName, email) => {
     vaccineDate.setDate(vaccineDate.getDate() + days);
 
     return {
-      babyName:     babyName || "Unknown Baby",
-      email:        email    || "No Email",
-      vaccineName:  rule.vaccineName,
-      scheduleDate: vaccineDate,
+      babyName:        babyName || "Unknown Baby",
+      email:           email    || "No Email",
+      babyId:          babyId   || null,
+      vaccineName:     rule.vaccineName,
+      ageLabel:        rule.recommendedAgeLabel || '',
+      description:     rule.description || '',
+      scheduleRuleId:  rule._id,
+      scheduleDate:    vaccineDate,
+      status:          'Pending',
+      got:             false,
     };
   });
 };

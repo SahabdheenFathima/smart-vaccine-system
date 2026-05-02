@@ -26,6 +26,8 @@ import AdminVaccineSchedulePage from "./pages/AdminVaccineSchedulePage";
 import BookConsultationPage from "./pages/BookConsultationPage";
 import ConsultantDashboardPage from "./pages/ConsultantDashboardPage";
 import ParentClinicalNotesPage from "./pages/ParentClinicalNotesPage";
+import AdminGrowthPage from "./pages/AdminGrowthPage";
+import AdminMilestonesPage from "./pages/AdminMilestonesPage";
 
 // Original components (kept for fallback/reference if needed)
 // import SignIn from "./components/SignIn";
@@ -137,6 +139,18 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/admin-growth" element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminGrowthPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin-milestones" element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminMilestonesPage />
+            </ProtectedRoute>
+          } />
+
           <Route path="/admin-appointments" element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <AdminAppointmentsPage />
@@ -164,6 +178,12 @@ function App() {
           <Route path="/admin-vaccine-schedules" element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <AdminVaccineSchedulePage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin-vaccines" element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminVaccinesPage />
             </ProtectedRoute>
           } />
 

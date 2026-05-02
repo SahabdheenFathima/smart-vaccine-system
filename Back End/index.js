@@ -36,12 +36,14 @@ const bookingRoutes         = require("./routes/BookingRoutes");
 const adminRoutes           = require("./routes/AdminRoutes");
 const vaccineScheduleRoutes = require("./routes/VaccineScheduleRoutes");
 const clinicalNoteRoutes    = require("./routes/clinicalNoteRoutes");
+const milestoneRoutes       = require("./routes/MilestoneRoutes");
 app.use("/api/vaccines",          vaccineRoutes);
 app.use("/api/consultants",       consultantRoutes);
 app.use("/api/bookings",          bookingRoutes);
 app.use("/api/admin",             adminRoutes);
 app.use("/api/vaccine-schedules", vaccineScheduleRoutes);
 app.use("/api/clinical-notes",    clinicalNoteRoutes);
+app.use("/api/milestones",        milestoneRoutes);
 
 // MongoDB Connection
 mongoose.set("strictQuery", true);
@@ -248,7 +250,7 @@ app.post("/submit-form", async (req, res) => {
     if (savedBaby.birthDate && savedBaby.babyName && savedBaby.email) {
       try {
         // generateVaccines is now async — reads from DB instead of static file
-        const generatedVaccines = await generateVaccines(savedBaby.birthDate, savedBaby.babyName, savedBaby.email);
+        const generatedVaccines = await generateVaccines(savedBaby.birthDate, savedBaby.babyName, savedBaby.email, savedBaby._id);
         const vaccinesWithBabyId = generatedVaccines.map(v => ({ ...v, babyId: savedBaby._id }));
         await Vaccine.insertMany(vaccinesWithBabyId);
         console.log("💉 Vaccines generated for:", savedBaby.babyName, "(", generatedVaccines.length, "doses)");
@@ -320,19 +322,60 @@ app.delete("/api/baby/:id", async (req, res) => {
 // --- Growth Analytics Routes ---
 app.post("/api/growth", async (req, res) => {
   try {
-    const { email, age, month, height, weight } = req.body;
-    const baby = await Baby.findOne({ email }).sort({ _id: -1 });
+    const { email, babyId, age, month, height, weight, headCircumference, date } = req.body;
+    
+    let baby = null;
+    if (babyId) {
+      baby = await Baby.findById(babyId);
+    } else if (email) {
+      baby = await Baby.findOne({ email }).sort({ _id: -1 });
+    }
+    
+    if (!baby) {
+      return res.status(404).json({ status: "error", error: "Baby not found" });
+    }
+
     const resolvedAge = month != null ? Number(month) : Number(age);
     const growth = new Growth({
-      email,
+      email: baby.email,
       age: resolvedAge,
       month: resolvedAge,
       height: parseFloat(height),
       weight: weight != null ? parseFloat(weight) : undefined,
-      babyId: baby ? baby._id : null
+      headCircumference: headCircumference != null ? parseFloat(headCircumference) : undefined,
+      date: date ? new Date(date) : Date.now(),
+      babyId: baby._id
     });
     await growth.save();
     res.status(201).json({ status: "ok", data: growth });
+  } catch (err) {
+    res.status(500).json({ status: "error", error: err.message });
+  }
+});
+
+app.get("/api/growth", async (req, res) => {
+  try {
+    const growthData = await Growth.find().populate("babyId").sort({ date: -1 });
+    res.json({ status: "ok", data: growthData });
+  } catch (err) {
+    res.status(500).json({ status: "error", error: err.message });
+  }
+});
+
+app.put("/api/growth/:id", async (req, res) => {
+  try {
+    const { height, weight, headCircumference, date, age, month } = req.body;
+    const resolvedAge = month != null ? Number(month) : (age != null ? Number(age) : undefined);
+    
+    const updates = {};
+    if (resolvedAge != null) { updates.age = resolvedAge; updates.month = resolvedAge; }
+    if (height != null) updates.height = parseFloat(height);
+    if (weight != null) updates.weight = parseFloat(weight);
+    if (headCircumference != null) updates.headCircumference = parseFloat(headCircumference);
+    if (date != null) updates.date = new Date(date);
+
+    const updatedGrowth = await Growth.findByIdAndUpdate(req.params.id, updates, { new: true });
+    res.json({ status: "ok", data: updatedGrowth });
   } catch (err) {
     res.status(500).json({ status: "error", error: err.message });
   }

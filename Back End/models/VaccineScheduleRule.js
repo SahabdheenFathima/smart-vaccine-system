@@ -19,6 +19,7 @@ const vaccineScheduleRuleSchema = new mongoose.Schema({
   // Metadata
   doseOrder:          { type: Number, default: 1 },             // 1st, 2nd, booster…
   recommendedAgeLabel: { type: String, default: '' },           // "2 months", "5 years"
+  description:        { type: String, default: '' },            // Clinical description
   priorityLevel:      { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Medium' },
   status:             { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   notes:              { type: String, default: '' },

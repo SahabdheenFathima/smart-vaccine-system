@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
 import MainLayout from '../components/templates/MainLayout';
+import API_BASE from '../config';
 
 const stages = [
   { title: 'Newborn', age: '6 Weeks - 3 Months', image: '/milestones/stage_1.png', tasks: ['Raises head when lying down.', 'Follows moving objects with eyes.', 'Responds to loud noises.', 'Makes "aaa oo ee" sounds.', 'Social smile.'] },
@@ -16,139 +19,250 @@ const stages = [
 
 const DevelopmentStagesPage = () => {
     const navigate = useNavigate();
-    const [checkedItems, setCheckedItems] = useState(() => JSON.parse(localStorage.getItem('checkedItems')) || {});
-    const [showSuccess, setShowSuccess] = useState(false);
+    const [user, setUser] = useState(null);
+    const [babies, setBabies] = useState([]);
+    const [selectedBabyId, setSelectedBabyId] = useState("");
+    const [responses, setResponses] = useState({}); // Key: "stageIdx-taskIdx", Value: "YES" | "NO"
+    const [loading, setLoading] = useState(true);
+
+    const fetchMilestones = useCallback(async (babyId) => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/milestones/baby/${babyId}`);
+            if (res.data.status === "ok") {
+                const fetchedResponses = {};
+                res.data.data.forEach(m => {
+                    fetchedResponses[`${m.stageIndex}-${m.taskIndex}`] = m.response;
+                });
+                setResponses(fetchedResponses);
+            }
+        } catch (err) {
+            console.error("Error fetching milestones:", err);
+            toast.error("Could not load milestones.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        localStorage.setItem('checkedItems', JSON.stringify(checkedItems));
-    }, [checkedItems]);
+        const initData = async () => {
+            const token = window.localStorage.getItem("token");
+            if (!token) { navigate("/sign-in"); return; }
+            try {
+                const userRes = await axios.post(`${API_BASE}/userData`, { token });
+                if (userRes.data.status === "ok") {
+                    const userData = userRes.data.data;
+                    setUser(userData);
+                    
+                    const babiesRes = await axios.get(`${API_BASE}/api/user-babies/${userData.email}`);
+                    if (babiesRes.data.status === "ok" && babiesRes.data.data.length > 0) {
+                        setBabies(babiesRes.data.data);
+                        const firstBabyId = babiesRes.data.data[0]._id;
+                        setSelectedBabyId(firstBabyId);
+                        fetchMilestones(firstBabyId);
+                    } else {
+                        setLoading(false);
+                    }
+                } else { navigate("/sign-in"); }
+            } catch (err) { navigate("/sign-in"); }
+        };
+        initData();
+    }, [navigate, fetchMilestones]);
 
-    const toggleCheck = (stageIdx, taskIdx) => {
+    const handleBabyChange = (e) => {
+        const id = e.target.value;
+        setSelectedBabyId(id);
+        setLoading(true);
+        setResponses({});
+        fetchMilestones(id);
+    };
+
+    const handleResponse = async (stageIdx, taskIdx, responseType) => {
+        if (!selectedBabyId) return toast.error("Please select a child first.");
+
+        // Optimistic UI Update
         const key = `${stageIdx}-${taskIdx}`;
-        const isChecking = !checkedItems[key];
-        setCheckedItems(prev => ({ ...prev, [key]: isChecking }));
-        if (isChecking) {
-            setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 2000);
+        setResponses(prev => ({ ...prev, [key]: responseType }));
+
+        try {
+            await axios.post(`${API_BASE}/api/milestones`, {
+                babyId: selectedBabyId,
+                stageIndex: stageIdx,
+                taskIndex: taskIdx,
+                response: responseType
+            });
+            toast.success("Milestone updated successfully", { id: 'milestone-toast', duration: 1500 });
+        } catch (err) {
+            toast.error("Failed to save. Please try again.");
+            // Revert state on failure (optional, keeping it simple for now)
         }
     };
+
+    if (loading) {
+        return (
+            <MainLayout>
+                <div className="flex-center justify-center" style={{ height: '80vh' }}>
+                    <div className="badge-premium animate-pulse">Loading Milestones...</div>
+                </div>
+            </MainLayout>
+        );
+    }
 
     return (
         <MainLayout>
             <div className="container-full py-12 animate-slide">
-                <header className="mb-big flex-center" style={{ gap: '1.5rem' }}>
-                    <button className="btn-back" onClick={() => navigate('/dashbord')}>
-                        <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    </button>
-                    <div>
-                        <h1 className="text-huge">Milestone Tracker</h1>
-                        <p className="text-muted mt-2" style={{ fontSize: '1.125rem' }}>Track developmental milestones from birth to 5 years.</p>
+                <header className="mb-8 flex-center-between">
+                    <div className="flex-center" style={{ gap: '1.5rem' }}>
+                        <button className="btn-back" onClick={() => navigate('/dashbord')}>
+                            <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                        </button>
+                        <div>
+                            <h1 className="text-huge">Milestone Tracker</h1>
+                            <p className="text-muted mt-2" style={{ fontSize: '1.125rem' }}>Track developmental milestones from birth to 5 years.</p>
+                        </div>
                     </div>
+                    {babies.length > 0 && (
+                        <div style={{ position: 'relative' }}>
+                            <select 
+                                value={selectedBabyId} 
+                                onChange={handleBabyChange}
+                                className="input-field"
+                                style={{ 
+                                    minWidth: '200px', padding: '0.75rem 2.5rem 0.75rem 1.25rem', 
+                                    fontSize: '1rem', fontWeight: 700, borderRadius: '0.75rem',
+                                    background: '#F3F4F6', border: '1px solid #E5E7EB', color: '#111827', cursor: 'pointer', outline: 'none'
+                                }}
+                            >
+                                {babies.map(b => (
+                                    <option key={b._id} value={b._id}>{b.babyName}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </header>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2.5rem' }}>
-                    {stages.map((stage, sIdx) => {
-                        const totalTasks = stage.tasks.length;
-                        const completedTasks = stage.tasks.filter((_, tIdx) => checkedItems[`${sIdx}-${tIdx}`]).length;
-                        const progress = Math.round((completedTasks / totalTasks) * 100);
+                {!selectedBabyId ? (
+                    <div style={{ padding: '3rem', background: '#f9fafb', borderRadius: '12px', textAlign: 'center', color: '#6b7280', border: '1px dashed #d1d5db' }}>
+                        Please register a child to start tracking milestones.
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '2.5rem' }}>
+                        {stages.map((stage, sIdx) => {
+                            const totalTasks = stage.tasks.length;
+                            const completedTasks = stage.tasks.filter((_, tIdx) => responses[`${sIdx}-${tIdx}`] === 'YES').length;
+                            const progress = Math.round((completedTasks / totalTasks) * 100);
 
-                        return (
-                            <div key={sIdx} className="flip-card">
-                                <div className="flip-card-inner">
-                                    {/* FRONT */}
-                                    <div className="flip-card-front">
-                                        <div className="milestone-badge">STAGE {sIdx + 1}</div>
-                                        <img src={stage.image} alt={stage.title} className="milestone-img" />
-                                        <div style={{ padding: '1.5rem', background: 'var(--bg-card)', borderTop: '1px solid var(--border-color)' }}>
-                                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{stage.title}</h3>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
-                                                <p style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.875rem' }}>{stage.age}</p>
-                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: progress === 100 ? '#10b981' : 'var(--primary)', background: progress === 100 ? '#d1fae5' : 'var(--primary-glow)', padding: '0.25rem 0.5rem', borderRadius: '12px' }}>
-                                                    {progress}% Completed
-                                                </span>
+                            // Determine status color based on progress
+                            let statusColor = '#2563EB'; // Blue
+                            let statusBg = '#EFF6FF';
+                            if (progress >= 80) { statusColor = '#10B981'; statusBg = '#D1FAE5'; } // Green
+                            else if (progress > 0 && progress < 50) { statusColor = '#F59E0B'; statusBg = '#FEF3C7'; } // Amber
+
+                            return (
+                                <div key={sIdx} className="flip-card">
+                                    <div className="flip-card-inner">
+                                        {/* FRONT */}
+                                        <div className="flip-card-front">
+                                            <div className="milestone-badge">STAGE {sIdx + 1}</div>
+                                            <div style={{ height: '220px', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                                {/* Fallback pattern if image is missing */}
+                                                <img 
+                                                    src={stage.image} 
+                                                    alt={stage.title} 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2rem' }} 
+                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                />
                                             </div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* BACK */}
-                                    <div className="flip-card-back">
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                                            <span className="badge-premium">STAGE {sIdx + 1}</span>
-                                            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary)' }}>{stage.age}</span>
+                                            <div style={{ padding: '1.5rem', background: 'white', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                                <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#111827', textTransform: 'uppercase' }}>{stage.title}</h3>
+                                                <p style={{ color: '#6B7280', fontWeight: 600, fontSize: '1rem', marginTop: '0.25rem', marginBottom: '1.5rem' }}>{stage.age}</p>
+                                                
+                                                {/* Circular/Linear Progress Indicator */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    {/* Fake Circle Progress via CSS conic-gradient */}
+                                                    <div style={{ 
+                                                        width: '60px', height: '60px', borderRadius: '50%', 
+                                                        background: `conic-gradient(${statusColor} ${progress}%, #E5E7EB 0)`,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}>
+                                                        <div style={{ width: '50px', height: '50px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <span style={{ fontSize: '1rem', fontWeight: 800, color: statusColor }}>{progress}%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: '#111827' }}>{completedTasks} Complete</div>
+                                                        <div style={{ fontSize: '0.875rem', color: '#6B7280' }}>{completedTasks}/{totalTasks} Achieved</div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         
-                                        <h3 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{stage.title} Details</h3>
-                                        <div style={{ marginBottom: '1.25rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', fontWeight: 700 }}>
-                                                <span style={{ color: 'var(--text-secondary)' }}>Overall Progress</span>
-                                                <span style={{ color: progress === 100 ? '#10b981' : 'var(--primary)' }}>{progress}%</span>
+                                        {/* BACK */}
+                                        <div className="flip-card-back">
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '1px' }}>STAGE {sIdx + 1}: {stage.title}</span>
+                                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#2563EB' }}>{stage.age}</span>
+                                                </div>
+                                                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', marginBottom: '1rem' }}>Milestone Checklist</h3>
                                             </div>
-                                            <div className="progress-bar-container">
-                                                <div className="progress-bar-fill" style={{ width: `${progress}%`, background: progress === 100 ? '#10b981' : 'var(--primary)' }}></div>
-                                            </div>
-                                        </div>
 
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }} className="custom-scrollbar">
-                                            {stage.tasks.map((task, tIdx) => {
-                                                const isChecked = !!checkedItems[`${sIdx}-${tIdx}`];
-                                                return (
-                                                    <div 
-                                                        key={tIdx} 
-                                                        onClick={() => toggleCheck(sIdx, tIdx)}
-                                                        style={{ 
-                                                            display: 'flex', gap: '0.75rem', padding: '0.875rem', borderRadius: '1rem', 
-                                                            cursor: 'pointer', transition: 'all 0.2s', 
-                                                            background: isChecked ? 'var(--primary-glow)' : 'var(--bg-main)',
-                                                            border: '1.5px solid',
-                                                            borderColor: isChecked ? 'var(--primary)' : 'var(--border-color)',
-                                                        }}
-                                                    >
-                                                        <div style={{ 
-                                                            width: '20px', height: '20px', borderRadius: '5px', 
-                                                            border: '2px solid', borderColor: isChecked ? 'var(--primary)' : 'var(--text-secondary)',
-                                                            background: isChecked ? 'var(--primary)' : 'transparent',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            flexShrink: 0, marginTop: '2px'
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }} className="custom-scrollbar">
+                                                {stage.tasks.map((task, tIdx) => {
+                                                    const res = responses[`${sIdx}-${tIdx}`];
+                                                    const isYes = res === 'YES';
+                                                    const isNo = res === 'NO';
+
+                                                    return (
+                                                        <div key={tIdx} style={{ 
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderRadius: '0.75rem', 
+                                                            background: isYes ? '#F0FDF4' : (isNo ? '#FEF2F2' : '#F9FAFB'),
+                                                            border: '1px solid',
+                                                            borderColor: isYes ? '#86EFAC' : (isNo ? '#FECACA' : '#E5E7EB'),
+                                                            transition: 'all 0.2s'
                                                         }}>
-                                                            {isChecked && <svg style={{ width: '14px', height: '14px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, paddingRight: '1rem' }}>
+                                                                <div style={{ color: isYes ? '#10B981' : (isNo ? '#EF4444' : '#9CA3AF') }}>
+                                                                    {isYes ? (
+                                                                        <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                                                                    ) : (isNo ? (
+                                                                        <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                                    ) : (
+                                                                        <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                    ))}
+                                                                </div>
+                                                                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', lineHeight: 1.3 }}>{task}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); handleResponse(sIdx, tIdx, 'YES'); }}
+                                                                    style={{ 
+                                                                        padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', border: 'none',
+                                                                        background: isYes ? '#10B981' : '#E5E7EB', color: isYes ? 'white' : '#4B5563',
+                                                                        boxShadow: isYes ? '0 2px 4px rgba(16,185,129,0.3)' : 'none', transition: 'all 0.2s'
+                                                                    }}
+                                                                >Yes</button>
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); handleResponse(sIdx, tIdx, 'NO'); }}
+                                                                    style={{ 
+                                                                        padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', border: 'none',
+                                                                        background: isNo ? '#EF4444' : '#E5E7EB', color: isNo ? 'white' : '#4B5563',
+                                                                        boxShadow: isNo ? '0 2px 4px rgba(239,68,68,0.3)' : 'none', transition: 'all 0.2s'
+                                                                    }}
+                                                                >No</button>
+                                                            </div>
                                                         </div>
-                                                        <span style={{ 
-                                                            fontSize: '0.875rem', fontWeight: 600, 
-                                                            color: isChecked ? 'var(--primary)' : 'var(--text-secondary)',
-                                                            textDecoration: isChecked ? 'line-through' : 'none',
-                                                            lineHeight: 1.4
-                                                        }}>{task}</span>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Custom Success Notification */}
-                {showSuccess && (
-                    <div style={{ 
-                        position: 'fixed', bottom: '40px', right: '40px', 
-                        background: 'var(--primary)', color: 'white', 
-                        padding: '1.25rem 2.5rem', borderRadius: '1.5rem', 
-                        boxShadow: '0 20px 40px -10px var(--primary-glow)',
-                        display: 'flex', alignItems: 'center', gap: '1rem',
-                        fontWeight: 800, zIndex: 9999, animation: 'slideRight 0.3s ease-out'
-                    }}>
-                        <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
-                        </div>
-                        Milestone Completed Successfully!
+                            );
+                        })}
                     </div>
                 )}
             </div>
             <style>{`
-                @keyframes slideRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                
                 .flip-card {
                     background-color: transparent;
                     perspective: 1000px;
@@ -170,63 +284,44 @@ const DevelopmentStagesPage = () => {
                     height: 100%;
                     -webkit-backface-visibility: hidden;
                     backface-visibility: hidden;
-                    border-radius: 1.5rem;
+                    border-radius: 1rem;
                     overflow: hidden;
-                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+                    border: 1px solid #E5E7EB;
                 }
                 .flip-card-front {
-                    background-color: var(--bg-card);
+                    background-color: white;
                     display: flex;
                     flex-direction: column;
                 }
                 .flip-card-back {
-                    background-color: var(--bg-card);
+                    background-color: white;
                     transform: rotateY(180deg);
-                    padding: 2rem;
+                    padding: 1.5rem;
                     display: flex;
                     flex-direction: column;
-                    border: 1px solid var(--border-color);
-                }
-                .milestone-img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    flex: 1;
-                    min-height: 0;
                 }
                 .milestone-badge {
                     position: absolute;
-                    top: 1.5rem;
-                    left: 1.5rem;
+                    top: 1rem;
+                    left: 1rem;
                     background: rgba(255, 255, 255, 0.9);
                     backdrop-filter: blur(10px);
-                    padding: 0.5rem 1rem;
+                    padding: 0.4rem 0.8rem;
                     border-radius: 20px;
                     font-weight: 800;
-                    font-size: 0.8125rem;
-                    color: var(--primary);
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                }
-                .progress-bar-container {
-                    width: 100%;
-                    height: 8px;
-                    background: var(--bg-secondary);
-                    border-radius: 4px;
-                    margin-top: 0.5rem;
-                    overflow: hidden;
-                }
-                .progress-bar-fill {
-                    height: 100%;
-                    transition: width 0.3s ease;
+                    font-size: 0.75rem;
+                    color: #2563EB;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                 }
                 .custom-scrollbar::-webkit-scrollbar {
-                    width: 6px;
+                    width: 4px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-track {
                     background: transparent;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background-color: var(--border-color);
+                    background-color: #D1D5DB;
                     border-radius: 10px;
                 }
             `}</style>
