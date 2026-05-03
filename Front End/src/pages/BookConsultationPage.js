@@ -1,7 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/templates/MainLayout';
 import toast from 'react-hot-toast';
+import { 
+  Stethoscope, 
+  Calendar, 
+  Clock, 
+  ChevronRight, 
+  ChevronLeft, 
+  CheckCircle2, 
+  AlertCircle, 
+  Baby, 
+  User, 
+  Building2, 
+  Info, 
+  ArrowRight, 
+  ArrowLeft,
+  ShieldCheck,
+  Zap,
+  Activity,
+  UserCheck,
+  MapPin,
+  Search,
+  Timer,
+  Hash
+} from 'lucide-react';
+
+// --- Design Tokens ---
+const C = {
+  bg: '#F8FAFC',
+  card: '#FFFFFF',
+  border: '#E2E8F0',
+  primary: '#4F46E5',
+  primaryLight: '#EEF2FF',
+  secondary: '#64748B',
+  text: '#0F172A',
+  muted: '#94A3B8',
+  red: '#EF4444',
+  redLight: '#FEE2E2',
+  green: '#10B981',
+  greenLight: '#D1FAE5',
+  blue: '#3B82F6',
+  blueLight: '#DBEAFE',
+  amber: '#F59E0B',
+  amberLight: '#FEF3C7',
+};
 
 const BookConsultationPage = () => {
   const [userData, setUserData] = useState(null);
@@ -112,283 +155,410 @@ const BookConsultationPage = () => {
 
   const filteredConsultants = consultants.filter(c => c.department === selectedDepartment);
   const selectedConsultantObj = consultants.find(c => c._id === selectedConsultant);
+  const selectedBabyObj = babies.find(b => b._id === selectedChild);
 
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
-      <div className="badge-premium animate-pulse">Loading Consultation Portal...</div>
-    </div>
+    <MainLayout user={userData}>
+      <div style={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '40px', height: '40px', border: `3px solid ${C.primary}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+          <p style={{ fontWeight: 700, color: C.muted }}>Initializing Portal...</p>
+        </div>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </MainLayout>
   );
 
   return (
     <MainLayout user={userData}>
-      <div className="container-full py-12 animate-slide">
-        <header className="mb-big" style={{ display: 'flex', gap: '2rem', alignItems: 'center', background: 'var(--bg-card)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-          <div style={{ flex: 1 }}>
-            <h1 className="text-huge" style={{ fontSize: '2.5rem', color: 'var(--primary)', marginBottom: '0.5rem' }}>Child Health Consultation</h1>
-            <p className="text-muted" style={{ fontSize: '1.125rem', lineHeight: '1.6' }}>Book appointments with specialist doctors at government healthcare centers. Fast, easy, and secure token generation for specialized childcare departments.</p>
+      <div style={{ background: C.bg, minHeight: '100vh', padding: '2.5rem 2.5rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        
+        {/* --- Header Hero --- */}
+        <header style={{ marginBottom: '2.5rem', background: `linear-gradient(135deg, ${C.primary}, #6366F1)`, borderRadius: '24px', padding: '3rem', color: 'white', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: '700px' }}>
+            <h1 style={{ fontSize: '2.25rem', fontWeight: 900, marginBottom: '1rem', letterSpacing: '-0.025em' }}>Consultation Portal</h1>
+            <p style={{ fontSize: '1.1rem', opacity: 0.9, lineHeight: 1.6 }}>Securely book pediatric consultations with specialist clinical departments. Our intelligent token system ensures minimal waiting times and priority care.</p>
+            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle2 size={18} /> <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Government Certified</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShieldCheck size={18} /> <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>End-to-End Encrypted</span>
+              </div>
+            </div>
           </div>
-          <div style={{ width: '300px', height: '180px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
-            <img src="/consultation_banner_1777188119532.png" alt="Consultation Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', top: '50%', right: '5%', transform: 'translateY(-50%)', opacity: 0.2 }}>
+            <Stethoscope size={240} />
           </div>
         </header>
 
-        <div className="grid-main" style={{ gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
-            {/* Booking Wizard */}
-            <div className="card-premium">
-                <h2 className="text-title mb-6">Book an Appointment</h2>
-                
-                {/* Step Indicators */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', background: 'var(--border-color)', zIndex: 0 }}></div>
-                    {['Child', 'Department & Doctor', 'Schedule', 'Confirm'].map((s, i) => (
-                        <div key={s} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-card)' }}>
-                            <div style={{ 
-                                width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold',
-                                background: step > i + 1 ? 'var(--primary)' : step === i + 1 ? 'var(--primary)' : 'var(--bg-main)',
-                                color: step >= i + 1 ? 'white' : 'var(--text-secondary)',
-                                border: `2px solid ${step >= i + 1 ? 'var(--primary)' : 'var(--border-color)'}`
-                            }}>
-                                {step > i + 1 ? '✓' : i + 1}
-                            </div>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: step >= i + 1 ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{s}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
+          
+          {/* --- LEFT: Booking Wizard --- */}
+          <div style={{ background: 'white', borderRadius: '24px', border: `1px solid ${C.border}`, padding: '2.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: C.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary }}>
+                <Calendar size={22} strokeWidth={2.5} />
+              </div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: C.text }}>New Appointment Wizard</h2>
+            </div>
+
+            {/* Clinical Step Progress */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3.5rem', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '16px', left: '10%', right: '10%', height: '2px', background: C.border, zIndex: 0 }}></div>
+              <div style={{ position: 'absolute', top: '16px', left: '10%', width: `${(step-1)*27}%`, height: '2px', background: C.primary, zIndex: 0, transition: 'width 0.4s ease' }}></div>
+              
+              {['Patient', 'Doctor', 'Schedule', 'Confirm'].map((s, i) => {
+                const isActive = step === i + 1;
+                const isDone = step > i + 1;
+                return (
+                  <div key={s} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', width: '80px' }}>
+                    <div style={{ 
+                        width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 900,
+                        background: isDone ? C.primary : isActive ? 'white' : C.bg,
+                        color: isDone ? 'white' : isActive ? C.primary : C.muted,
+                        border: `2.5px solid ${isDone || isActive ? C.primary : C.border}`,
+                        transition: 'all 0.3s'
+                    }}>
+                      {isDone ? <CheckCircle2 size={16} strokeWidth={3} /> : i + 1}
+                    </div>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: isActive ? C.primary : C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ minHeight: '350px' }}>
+              {/* STEP 1: CHILD SELECTION */}
+              {step === 1 && (
+                <div style={{ animation: 'slideIn 0.3s ease-out' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: C.text, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Baby size={20} color={C.primary} /> Select Clinical Profile
+                  </h3>
+                  {babies.length === 0 ? (
+                    <div style={{ padding: '2rem', background: C.redLight, borderRadius: '16px', textAlign: 'center', border: `1px solid ${C.red}33` }}>
+                        <p style={{ color: C.red, fontWeight: 700 }}>No child profiles found. Please register a baby first.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1.25rem' }}>
+                      {babies.map(baby => (
+                        <div 
+                          key={baby._id} 
+                          onClick={() => setSelectedChild(baby._id)}
+                          style={{ 
+                            padding: '1.5rem', border: `2px solid ${selectedChild === baby._id ? C.primary : C.border}`, 
+                            borderRadius: '20px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
+                            background: selectedChild === baby._id ? C.primaryLight : 'white',
+                            boxShadow: selectedChild === baby._id ? `0 4px 15px ${C.primary}15` : 'none'
+                          }}
+                        >
+                          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', margin: '0 auto 1rem' }}>👶</div>
+                          <h4 style={{ fontWeight: 800, color: C.text }}>{baby.babyName}</h4>
+                          <p style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600, marginTop: '0.25rem' }}>{baby.gender} · {new Date(baby.birthDate).getFullYear()}</p>
                         </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3rem' }}>
+                    <button disabled={!selectedChild} onClick={() => setStep(2)} style={{ padding: '0.85rem 2.5rem', background: C.primary, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: selectedChild ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.6rem', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+                      Next Step <ArrowRight size={18} />
+                    </button>
+                  </div>
                 </div>
+              )}
 
-                <div style={{ minHeight: '300px' }}>
-                    {step === 1 && (
-                        <div className="animate-slide">
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Select Child Profile</h3>
-                            {babies.length === 0 ? (
-                                <div className="p-6 bg-red-50 text-red-600 rounded-xl">No child profiles found. Please register a baby first.</div>
-                            ) : (
-                                <div className="grid-main" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                                    {babies.map(baby => (
-                                        <div 
-                                            key={baby._id} 
-                                            onClick={() => setSelectedChild(baby._id)}
-                                            style={{ 
-                                                padding: '1.5rem', border: `2px solid ${selectedChild === baby._id ? 'var(--primary)' : 'var(--border-color)'}`, 
-                                                borderRadius: '12px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
-                                                background: selectedChild === baby._id ? 'rgba(79, 70, 229, 0.05)' : 'transparent'
-                                            }}
-                                        >
-                                            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>👶</div>
-                                            <h4 style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{baby.babyName}</h4>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <div className="flex justify-end mt-8">
-                                <button disabled={!selectedChild} onClick={() => setStep(2)} className="btn-premium">Next Step</button>
-                            </div>
+              {/* STEP 2: DOCTOR SELECTION */}
+              {step === 2 && (
+                <div style={{ animation: 'slideIn 0.3s ease-out' }}>
+                  <div style={{ marginBottom: '2.5rem' }}>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Building2 size={20} color={C.primary} /> Hospital Department
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem' }}>
+                      {['Child Clinic', 'Vaccination Unit', 'Nutrition Clinic', 'Development Clinic'].map(dept => (
+                        <div 
+                            key={dept} onClick={() => { setSelectedDepartment(dept); setSelectedConsultant(''); }}
+                            style={{ 
+                                padding: '1rem', border: `2px solid ${selectedDepartment === dept ? C.primary : C.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'center',
+                                background: selectedDepartment === dept ? C.primaryLight : 'white', fontWeight: 800, fontSize: '0.85rem', color: selectedDepartment === dept ? C.primary : C.secondary
+                            }}
+                        >
+                            {dept}
                         </div>
-                    )}
+                      ))}
+                    </div>
+                  </div>
 
-                    {step === 2 && (
-                        <div className="animate-slide">
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Select Department</h3>
-                            <select 
-                                className="input-premium w-full mb-6" 
-                                value={selectedDepartment} 
-                                onChange={(e) => { setSelectedDepartment(e.target.value); setSelectedConsultant(''); }}
+                  {selectedDepartment && (
+                    <div style={{ animation: 'fadeIn 0.3s' }}>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <UserCheck size={20} color={C.primary} /> Specialist Consultant
+                      </h3>
+                      {filteredConsultants.length === 0 ? (
+                        <p style={{ color: C.muted, fontStyle: 'italic' }}>No specialists currently listed for this department.</p>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                          {filteredConsultants.map(c => (
+                            <div 
+                              key={c._id} 
+                              onClick={() => setSelectedConsultant(c._id)}
+                              style={{ 
+                                padding: '1.5rem', border: `2px solid ${selectedConsultant === c._id ? C.primary : C.border}`, 
+                                borderRadius: '20px', cursor: 'pointer', transition: 'all 0.2s',
+                                background: selectedConsultant === c._id ? C.primaryLight : 'white'
+                              }}
                             >
-                                <option value="">-- Choose Department --</option>
-                                <option value="Child Clinic">Child Clinic</option>
-                                <option value="Vaccination Unit">Vaccination Unit</option>
-                                <option value="Nutrition Clinic">Nutrition Clinic</option>
-                                <option value="Development Clinic">Development Clinic</option>
-                            </select>
-
-                            {selectedDepartment && (
-                                <>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Select Consultant</h3>
-                                    {filteredConsultants.length === 0 ? (
-                                        <p className="text-muted">No consultants currently available in this department.</p>
-                                    ) : (
-                                        <div className="grid-main" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
-                                            {filteredConsultants.map(c => (
-                                                <div 
-                                                    key={c._id} 
-                                                    onClick={() => setSelectedConsultant(c._id)}
-                                                    style={{ 
-                                                        padding: '1.5rem', border: `2px solid ${selectedConsultant === c._id ? 'var(--primary)' : 'var(--border-color)'}`, 
-                                                        borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s',
-                                                        background: selectedConsultant === c._id ? 'rgba(79, 70, 229, 0.05)' : 'transparent'
-                                                    }}
-                                                >
-                                                    <h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Dr. {c.name}</h4>
-                                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{c.specialization}</p>
-                                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}><strong>Exp:</strong> {c.experience} yrs</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                            <div className="flex justify-between mt-8">
-                                <button onClick={() => setStep(1)} className="btn-outline-premium">Back</button>
-                                <button disabled={!selectedConsultant} onClick={() => setStep(3)} className="btn-premium">Next Step</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 3 && (
-                        <div className="animate-slide">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary }}><User size={24} /></div>
                                 <div>
-                                    <label className="text-sm font-bold mb-2 block">Available Date</label>
-                                    <input 
-                                        type="date" 
-                                        className="input-premium w-full" 
-                                        value={selectedDate} 
-                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                        min={new Date().toISOString().split('T')[0]}
-                                    />
-                                    {selectedConsultantObj && (
-                                        <p style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '0.5rem' }}>
-                                            Dr. {selectedConsultantObj.name} is available on: {selectedConsultantObj.available_days.join(', ')}
-                                        </p>
-                                    )}
+                                    <h4 style={{ fontWeight: 800, fontSize: '1rem', color: C.text }}>Dr. {c.name}</h4>
+                                    <p style={{ color: C.muted, fontSize: '0.75rem', fontWeight: 600 }}>{c.specialization}</p>
                                 </div>
-                                <div>
-                                    <label className="text-sm font-bold mb-2 block">Preferred Time</label>
-                                    <select className="input-premium w-full" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)}>
-                                        <option value="">-- Choose Slot --</option>
-                                        {selectedConsultantObj?.available_slots.map(s => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.bg, padding: '0.6rem 0.85rem', borderRadius: '10px' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: C.muted }}>Experience: {c.experience} Years</span>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: C.green }}>Active</span>
+                              </div>
                             </div>
-
-                            <div className="mb-6">
-                                <label className="text-sm font-bold mb-2 block">Reason for Visit</label>
-                                <textarea 
-                                    className="input-premium w-full" 
-                                    rows="3" 
-                                    placeholder="e.g. Missed vaccination advice, fever after vaccine..."
-                                    value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
-                                ></textarea>
-                            </div>
-
-                            <div className="mb-6">
-                                <label className="text-sm font-bold mb-2 block">Priority Level</label>
-                                <div style={{ display: 'flex', gap: '1rem' }}>
-                                    {['Normal', 'Urgent'].map(p => (
-                                        <label key={p} style={{ 
-                                            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px',
-                                            cursor: 'pointer', background: priority === p ? (p === 'Urgent' ? 'rgba(239,68,68,0.1)' : 'rgba(79,70,229,0.1)') : 'transparent',
-                                            borderColor: priority === p ? (p === 'Urgent' ? '#ef4444' : 'var(--primary)') : 'var(--border-color)'
-                                        }}>
-                                            <input type="radio" name="priority" value={p} checked={priority === p} onChange={() => setPriority(p)} />
-                                            <span style={{ fontWeight: 600, color: p === 'Urgent' ? '#ef4444' : 'var(--text-primary)' }}>{p}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                                {priority === 'Urgent' && <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 600 }}>Note: Urgent cases require valid medical justification upon arrival.</p>}
-                            </div>
-
-                            <div className="flex justify-between mt-8">
-                                <button onClick={() => setStep(2)} className="btn-outline-premium">Back</button>
-                                <button disabled={!selectedDate || !selectedTime || !reason} onClick={() => setStep(4)} className="btn-premium">Review Booking</button>
-                            </div>
+                          ))}
                         </div>
-                    )}
+                      )}
+                    </div>
+                  )}
 
-                    {step === 4 && (
-                        <div className="animate-slide">
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem' }}>Booking Summary</h3>
-                            <div style={{ background: 'var(--bg-main)', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                    <div>
-                                        <span className="text-muted text-sm block mb-1">Patient Name</span>
-                                        <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>{babies.find(b => b._id === selectedChild)?.babyName}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted text-sm block mb-1">Hospital / Department</span>
-                                        <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>{selectedConsultantObj?.hospital_name}</p>
-                                        <p style={{ color: 'var(--text-secondary)' }}>{selectedDepartment}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted text-sm block mb-1">Consultant</span>
-                                        <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>Dr. {selectedConsultantObj?.name}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted text-sm block mb-1">Date & Time</span>
-                                        <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>{selectedDate}</p>
-                                        <p style={{ color: 'var(--text-secondary)' }}>{selectedTime}</p>
-                                    </div>
-                                    <div style={{ gridColumn: '1 / -1' }}>
-                                        <span className="text-muted text-sm block mb-1">Reason</span>
-                                        <p style={{ fontWeight: 600 }}>{reason}</p>
-                                    </div>
-                                    <div style={{ gridColumn: '1 / -1' }}>
-                                        <span className="text-muted text-sm block mb-1">Priority</span>
-                                        <span style={{ 
-                                            padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700,
-                                            background: priority === 'Urgent' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                                            color: priority === 'Urgent' ? '#ef4444' : '#6b7280'
-                                        }}>{priority}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex justify-between mt-8">
-                                <button onClick={() => setStep(3)} className="btn-outline-premium">Edit Details</button>
-                                <button onClick={handleBook} className="btn-premium" style={{ background: '#10b981', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>Confirm Appointment</button>
-                            </div>
-                        </div>
-                    )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem' }}>
+                    <button onClick={() => setStep(1)} style={{ padding: '0.85rem 2rem', background: 'white', border: `1.5px solid ${C.border}`, borderRadius: '12px', fontWeight: 800, cursor: 'pointer', color: C.secondary, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <ArrowLeft size={18} /> Back
+                    </button>
+                    <button disabled={!selectedConsultant} onClick={() => setStep(3)} style={{ padding: '0.85rem 2.5rem', background: C.primary, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: selectedConsultant ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.6rem', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+                      Next Step <ArrowRight size={18} />
+                    </button>
+                  </div>
                 </div>
+              )}
+
+              {/* STEP 3: SCHEDULE */}
+              {step === 3 && (
+                <div style={{ animation: 'slideIn 0.3s ease-out' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={18} color={C.primary} /> Visit Date</h3>
+                      <input 
+                        type="date" 
+                        value={selectedDate} 
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: `2px solid ${C.border}`, background: C.bg, fontSize: '0.95rem', fontWeight: 700, outline: 'none' }}
+                      />
+                      {selectedConsultantObj && (
+                        <p style={{ fontSize: '0.75rem', color: C.primary, fontWeight: 700, marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Info size={14} /> Weekly Availability: {selectedConsultantObj.available_days.join(', ')}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={18} color={C.primary} /> Time Slot</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+                        {selectedConsultantObj?.available_slots.map(s => (
+                          <div 
+                            key={s} onClick={() => setSelectedTime(s)}
+                            style={{ 
+                                padding: '0.75rem', border: `2px solid ${selectedTime === s ? C.primary : C.border}`, borderRadius: '10px', cursor: 'pointer', textAlign: 'center',
+                                background: selectedTime === s ? C.primaryLight : 'white', fontWeight: 800, fontSize: '0.8rem', color: selectedTime === s ? C.primary : C.secondary
+                            }}
+                          >
+                            {s}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '2.5rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: C.text, marginBottom: '1rem' }}>Reason & Priority</h3>
+                    <textarea 
+                        value={reason} onChange={(e) => setReason(e.target.value)}
+                        placeholder="Please describe symptoms or reason for clinical review..."
+                        style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: `2px solid ${C.border}`, background: C.bg, fontSize: '0.9rem', fontWeight: 600, outline: 'none', minHeight: '100px', marginBottom: '1.5rem' }}
+                    />
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        {['Normal', 'Urgent'].map(p => (
+                            <div 
+                                key={p} onClick={() => setPriority(p)}
+                                style={{ 
+                                    flex: 1, padding: '1rem', border: `2px solid ${priority === p ? (p === 'Urgent' ? C.red : C.primary) : C.border}`, borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                    background: priority === p ? (p === 'Urgent' ? C.redLight : C.primaryLight) : 'white'
+                                }}
+                            >
+                                <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${priority === p ? (p === 'Urgent' ? C.red : C.primary) : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {priority === p && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: p === 'Urgent' ? C.red : C.primary }}></div>}
+                                </div>
+                                <div>
+                                    <p style={{ fontWeight: 900, color: priority === p ? (p === 'Urgent' ? C.red : C.primary) : C.text, fontSize: '0.9rem' }}>{p} Case</p>
+                                    <p style={{ fontSize: '0.7rem', color: C.muted, fontWeight: 600 }}>{p === 'Urgent' ? 'Immediate clinical review required' : 'Standard clinical queue'}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem' }}>
+                    <button onClick={() => setStep(2)} style={{ padding: '0.85rem 2rem', background: 'white', border: `1.5px solid ${C.border}`, borderRadius: '12px', fontWeight: 800, cursor: 'pointer', color: C.secondary, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <ArrowLeft size={18} /> Back
+                    </button>
+                    <button disabled={!selectedDate || !selectedTime || !reason} onClick={() => setStep(4)} style={{ padding: '0.85rem 2.5rem', background: C.primary, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: (selectedDate && selectedTime && reason) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.6rem', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+                      Review Details <ArrowRight size={18} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: CONFIRMATION */}
+              {step === 4 && (
+                <div style={{ animation: 'slideIn 0.3s ease-out' }}>
+                  <div style={{ background: C.bg, borderRadius: '24px', padding: '2rem', border: `1px solid ${C.border}`, marginBottom: '2.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                        <div>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 900, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Patient Record</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👶</div>
+                                <div>
+                                    <p style={{ fontWeight: 900, color: C.text }}>{selectedBabyObj?.babyName}</p>
+                                    <p style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600 }}>File Ref: #{selectedChild.slice(-6).toUpperCase()}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 900, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Clinical Specialist</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary }}><Stethoscope size={20} /></div>
+                                <div>
+                                    <p style={{ fontWeight: 900, color: C.text }}>Dr. {selectedConsultantObj?.name}</p>
+                                    <p style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 600 }}>{selectedDepartment}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 900, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Hospital Entity</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.secondary }}><Building2 size={20} /></div>
+                                <p style={{ fontWeight: 800, color: C.text, fontSize: '0.9rem' }}>{selectedConsultantObj?.hospital_name}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 900, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Visit Protocol</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.blue }}><Clock size={20} /></div>
+                                <div>
+                                    <p style={{ fontWeight: 900, color: C.text }}>{selectedDate}</p>
+                                    <p style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 700 }}>Slot: {selectedTime}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1', paddingTop: '1.5rem', borderTop: `1px dashed ${C.border}` }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 900, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Clinical Justification</p>
+                            <p style={{ fontSize: '0.95rem', color: C.text, fontWeight: 600, lineHeight: 1.6 }}>{reason}</p>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem' }}>
+                    <button onClick={() => setStep(3)} style={{ padding: '0.85rem 2rem', background: 'white', border: `1.5px solid ${C.border}`, borderRadius: '12px', fontWeight: 800, cursor: 'pointer', color: C.secondary }}>
+                      Edit Details
+                    </button>
+                    <button onClick={handleBook} style={{ padding: '0.85rem 3rem', background: C.green, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', boxShadow: `0 4px 15px ${C.green}44` }}>
+                      Confirm Consultation <ShieldCheck size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* --- RIGHT: Appointment Ledger --- */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ background: 'white', borderRadius: '24px', border: `1px solid ${C.border}`, padding: '2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+                <Activity size={20} color={C.primary} strokeWidth={2.5} />
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: C.text }}>Appointment Ledger</h2>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {myBookings.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+                    <Timer size={40} color={C.muted} style={{ opacity: 0.3 }} />
+                    <p style={{ marginTop: '1rem', fontWeight: 700, color: C.muted, fontSize: '0.9rem' }}>No active bookings found</p>
+                  </div>
+                ) : (
+                  myBookings.map(b => (
+                    <div key={b._id} style={{ 
+                      padding: '1.5rem', border: `1.5px solid ${C.border}`, borderRadius: '20px', position: 'relative', overflow: 'hidden',
+                      borderLeft: `5px solid ${
+                        b.status === 'Approved' ? C.green : 
+                        b.status === 'Pending' ? C.amber : 
+                        b.status === 'Completed' ? C.primary : C.red
+                      }`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                        <div>
+                            <p style={{ fontSize: '0.65rem', fontWeight: 900, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Token Entry</p>
+                            <h4 style={{ fontSize: '1.25rem', fontWeight: 950, color: C.primary, marginTop: '0.1rem' }}>#{b.token_no}</h4>
+                        </div>
+                        <span style={{ 
+                            padding: '0.3rem 0.75rem', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase',
+                            background: b.status === 'Approved' ? C.greenLight : 
+                                        b.status === 'Pending' ? C.amberLight : 
+                                        b.status === 'Completed' ? C.primaryLight : C.redLight,
+                            color: b.status === 'Approved' ? C.green : 
+                                   b.status === 'Pending' ? C.amber : 
+                                   b.status === 'Completed' ? C.primary : C.red
+                        }}>{b.status}</span>
+                      </div>
+
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <p style={{ fontWeight: 800, color: C.text, fontSize: '0.95rem' }}>Dr. {b.consultant_id?.name}</p>
+                        <p style={{ fontSize: '0.8rem', color: C.muted, fontWeight: 600 }}>{b.consultant_id?.department}</p>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: `1px solid ${C.bg}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700, color: C.secondary }}>
+                          <Calendar size={14} /> {new Date(b.booking_date).toLocaleDateString()}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700, color: C.secondary }}>
+                          <Clock size={14} /> {b.booking_time}
+                        </div>
+                      </div>
+
+                      {b.status === 'Rejected' && (
+                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: C.redLight, color: C.red, fontSize: '0.75rem', borderRadius: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <AlertCircle size={14} /> Rejection: {b.rejection_reason || 'Department capacity reached.'}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
-            {/* My Appointments Side Panel */}
-            <div className="card-premium">
-                <h2 className="text-title mb-6">My Appointments</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {myBookings.length === 0 ? (
-                        <p className="text-muted text-center py-4">No appointments found.</p>
-                    ) : (
-                        myBookings.map(b => (
-                            <div key={b._id} style={{ 
-                                padding: '1.25rem', border: '1px solid var(--border-color)', borderRadius: '12px',
-                                borderLeft: `4px solid ${
-                                    b.status === 'Approved' ? '#10b981' : 
-                                    b.status === 'Pending' ? '#f59e0b' : 
-                                    b.status === 'Completed' ? 'var(--primary)' : '#ef4444'
-                                }`
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                    <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem' }}>{b.token_no}</span>
-                                    <span style={{ 
-                                        padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
-                                        background: b.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : 
-                                                    b.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 
-                                                    b.status === 'Completed' ? 'rgba(79, 70, 229, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                        color: b.status === 'Approved' ? '#10b981' : 
-                                               b.status === 'Pending' ? '#f59e0b' : 
-                                               b.status === 'Completed' ? 'var(--primary)' : '#ef4444'
-                                    }}>{b.status}</span>
-                                </div>
-                                <h4 style={{ fontWeight: 700, fontSize: '1rem' }}>Dr. {b.consultant_id?.name}</h4>
-                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{b.consultant_id?.department}</p>
-                                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                    <span>📅 {new Date(b.booking_date).toLocaleDateString()}</span>
-                                    <span>⏰ {b.booking_time}</span>
-                                </div>
-                                {b.rejection_reason && b.status === 'Rejected' && (
-                                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '0.8rem', borderRadius: '4px' }}>
-                                        Reason: {b.rejection_reason}
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    )}
+            {/* Quick Support Badge */}
+            <div style={{ padding: '1.5rem', background: C.primaryLight, borderRadius: '20px', border: `1px solid ${C.primary}33`, display: 'flex', gap: '1rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary }}>
+                    <Hash size={20} strokeWidth={2.5} />
+                </div>
+                <div>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 800, color: C.primary }}>Smart Queue Active</p>
+                    <p style={{ fontSize: '0.75rem', color: '#1E3A8A', opacity: 0.8, fontWeight: 500, marginTop: '0.2rem' }}>Your token status updates in real-time. Please arrive 15 minutes before your slot.</p>
                 </div>
             </div>
+          </div>
         </div>
+
       </div>
+      <style>{`
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </MainLayout>
   );
 };

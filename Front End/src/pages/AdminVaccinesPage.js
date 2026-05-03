@@ -3,11 +3,55 @@ import AdminLayout from '../components/templates/AdminLayout';
 import serverURL from '../config';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
+import { 
+  ClipboardList, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
+  Search, 
+  Filter, 
+  ChevronLeft, 
+  ChevronRight, 
+  Baby, 
+  Syringe, 
+  Calendar, 
+  Mail, 
+  ShieldCheck, 
+  ArrowUpRight,
+  MoreVertical,
+  Download,
+  Database,
+  User,
+  Info,
+  Check,
+  X,
+  RotateCcw
+} from 'lucide-react';
+
+// --- Design Tokens ---
+const C = {
+  bg: '#F8FAFC',
+  card: '#FFFFFF',
+  border: '#E2E8F0',
+  primary: '#4F46E5',
+  primaryLight: '#EEF2FF',
+  secondary: '#64748B',
+  text: '#0F172A',
+  muted: '#94A3B8',
+  red: '#EF4444',
+  redLight: '#FEE2E2',
+  green: '#10B981',
+  greenLight: '#D1FAE5',
+  blue: '#3B82F6',
+  blueLight: '#DBEAFE',
+  amber: '#F59E0B',
+  amberLight: '#FEF3C7',
+};
 
 const SC = {
-  Completed: { bg: '#D1FAE5', color: '#065F46', dot: '#10B981' },
-  Pending:   { bg: '#FEF3C7', color: '#92400E', dot: '#F59E0B' },
-  Missed:    { bg: '#FEE2E2', color: '#991B1B', dot: '#EF4444' },
+  Completed: { bg: C.greenLight, color: C.green, icon: CheckCircle },
+  Pending:   { bg: C.amberLight, color: C.amber, icon: Clock },
+  Missed:    { bg: C.redLight, color: C.red, icon: AlertCircle },
 };
 
 const AdminVaccinesPage = () => {
@@ -15,8 +59,11 @@ const AdminVaccinesPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  
+  // Pagination State
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  
   const [confirmModal, setConfirmModal] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
 
@@ -58,184 +105,268 @@ const AdminVaccinesPage = () => {
        (v.vaccineName||'').toLowerCase().includes(search.toLowerCase()))
     ), [vaccines, filterStatus, search]);
 
+  const totalPages = Math.ceil(filtered.length / rowsPerPage);
   const paginated = useMemo(() => filtered.slice((page-1)*rowsPerPage, page*rowsPerPage), [filtered, page, rowsPerPage]);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
 
-  const stats = useMemo(() => ({
-    total: vaccines.length,
-    completed: vaccines.filter(v=>v.ds==='Completed').length,
-    pending: vaccines.filter(v=>v.ds==='Pending').length,
-    missed: vaccines.filter(v=>v.ds==='Missed').length,
-  }), [vaccines]);
+  const stats = useMemo(() => [
+    { label: 'Total Records', value: vaccines.length, icon: Database, color: C.primary, bg: C.primaryLight },
+    { label: 'Completed', value: vaccines.filter(v=>v.ds==='Completed').length, icon: CheckCircle, color: C.green, bg: C.greenLight },
+    { label: 'Pending', value: vaccines.filter(v=>v.ds==='Pending').length, icon: Clock, color: C.amber, bg: C.amberLight },
+    { label: 'Missed', value: vaccines.filter(v=>v.ds==='Missed').length, icon: AlertCircle, color: C.red, bg: C.redLight },
+  ], [vaccines]);
 
-  const S = { minHeight:'100vh', background:'#F8FAFC', padding:'2rem 2.5rem', fontFamily:'Inter,system-ui,sans-serif' };
+  if (loading) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: '48px', height: '48px', border: `3px solid ${C.primary}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+        <p style={{ fontWeight: 700, color: C.muted }}>Accessing Vaccination Registry...</p>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <AdminLayout>
-      <div style={S}>
-        <div style={{ marginBottom:'2rem' }}>
-          <h1 style={{ fontSize:'1.75rem', fontWeight:900, color:'#0F172A', letterSpacing:'-0.02em' }}>Vaccination Registry</h1>
-          <p style={{ color:'#64748B', marginTop:'0.35rem' }}>Centralized status control center for all child vaccination records.</p>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'1.25rem', marginBottom:'2rem' }}>
-          {[
-            { label:'Total', value:stats.total, c:'#2563EB', bg:'#EFF6FF' },
-            { label:'Completed', value:stats.completed, c:'#059669', bg:'#ECFDF5' },
-            { label:'Pending', value:stats.pending, c:'#D97706', bg:'#FFFBEB' },
-            { label:'Missed', value:stats.missed, c:'#DC2626', bg:'#FEF2F2' },
-          ].map(s=>(
-            <div key={s.label} style={{ background:'white', borderRadius:'12px', border:'1px solid #E2E8F0', padding:'1.25rem', boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
-              <p style={{ fontSize:'0.72rem', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>{s.label}</p>
-              <p style={{ fontSize:'2.25rem', fontWeight:900, color:s.c, marginTop:'0.35rem', lineHeight:1 }}>{s.value}</p>
+      <div style={{ background: C.bg, minHeight: '100vh', padding: '2rem 2.5rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        
+        {/* --- Header --- */}
+        <header style={{ marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div>
+              <h1 style={{ fontSize: '1.9rem', fontWeight: 900, color: C.text, letterSpacing: '-0.025em' }}>Vaccination Registry</h1>
+              <p style={{ color: C.muted, marginTop: '0.4rem', fontSize: '1rem' }}>Centralized status control center for hospital-wide immunization monitoring.</p>
             </div>
-          ))}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'white', border: `1px solid ${C.border}`, borderRadius: '10px', fontWeight: 700, color: C.text, cursor: 'pointer' }}>
+                <Download size={18} /> Export CSV
+              </button>
+              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: C.primary, border: 'none', borderRadius: '10px', fontWeight: 700, color: 'white', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+                <ArrowUpRight size={18} strokeWidth={3} /> Clinical Report
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
+            {stats.map((s, idx) => (
+              <div key={idx} style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <s.icon size={22} color={s.color} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 900, color: C.text, marginTop: '0.1rem', lineHeight: 1 }}>{s.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </header>
+
+        {/* --- Filters & Search --- */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.35rem', borderRadius: '12px', border: `1px solid ${C.border}` }}>
+            {['All', 'Pending', 'Completed', 'Missed'].map(t => (
+              <button 
+                key={t}
+                onClick={() => { setFilterStatus(t); setPage(1); }}
+                style={{ 
+                  padding: '0.5rem 1.25rem', borderRadius: '8px', border: 'none', 
+                  background: filterStatus === t ? C.primaryLight : 'transparent',
+                  color: filterStatus === t ? C.primary : C.muted,
+                  fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                {t === 'All' ? 'All Records' : t}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', flex: 1, maxWidth: '500px' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={18} color={C.muted} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="Search child name or vaccine type..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                style={{ width: '100%', padding: '0.7rem 1rem 0.7rem 2.75rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, background: 'white', fontSize: '0.875rem', outline: 'none' }}
+              />
+            </div>
+            <select 
+                value={rowsPerPage} 
+                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+                style={{ padding: '0.7rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, background: 'white', fontSize: '0.85rem', fontWeight: 600, color: C.text, outline: 'none' }}
+            >
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+            </select>
+          </div>
         </div>
 
-        {/* Table Card */}
-        <div style={{ background:'white', borderRadius:'16px', border:'1px solid #E2E8F0', overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
-          <div style={{ padding:'1.25rem 1.5rem', borderBottom:'1px solid #F1F5F9', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'1rem', flexWrap:'wrap' }}>
-            <h3 style={{ fontWeight:800, fontSize:'1.05rem', color:'#0F172A' }}>Child Vaccination Records</h3>
-            <div style={{ display:'flex', gap:'0.75rem', alignItems:'center', flexWrap:'wrap' }}>
-              <div style={{ display:'flex', gap:'0.4rem', background:'#F8FAFC', padding:'0.3rem', borderRadius:'10px', border:'1px solid #E2E8F0' }}>
-                {['All','Pending','Completed','Missed'].map(s=>(
-                  <button key={s} onClick={()=>{ setFilterStatus(s); setPage(1); }} style={{
-                    padding:'0.4rem 0.9rem', borderRadius:'7px', border:'none', cursor:'pointer', fontWeight:700, fontSize:'0.82rem',
-                    background: filterStatus===s ? '#2563EB' : 'transparent',
-                    color: filterStatus===s ? 'white' : '#64748B', transition:'all 0.15s'
-                  }}>{s}</button>
+        {/* --- Data Table --- */}
+        <div style={{ background: 'white', borderRadius: '20px', border: `1px solid ${C.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: `1px solid ${C.border}` }}>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Patient Entity</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vaccine Detail</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Age Label</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Scheduled Date</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
+                <th style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>Update Registry</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.length > 0 ? paginated.map((v, idx) => {
+                const sc = SC[v.ds] || SC.Pending;
+                return (
+                  <tr key={v._id} style={{ borderBottom: `1px solid ${C.border}`, transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F9FAFB'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: C.blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.blue }}>
+                          <Baby size={20} />
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 800, color: C.text, fontSize: '0.9rem' }}>{v.babyName || 'Unknown'}</p>
+                          <p style={{ fontSize: '0.7rem', color: C.muted, display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Mail size={12} /> {v.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: C.primary, fontWeight: 800, fontSize: '0.9rem' }}>
+                        <Syringe size={16} /> {v.vaccineName}
+                      </div>
+                      <p style={{ fontSize: '0.7rem', color: C.muted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.2rem' }} title={v.description}>
+                        {v.description || 'No clinical description'}
+                      </p>
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      {v.ageLabel ? (
+                        <span style={{ padding: '0.3rem 0.6rem', background: C.primaryLight, color: C.primary, borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>{v.ageLabel}</span>
+                      ) : (
+                        <span style={{ color: C.muted }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: C.secondary, fontSize: '0.85rem', fontWeight: 600 }}>
+                        <Calendar size={14} /> {new Date(v.scheduleDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', background: sc.bg, color: sc.color, borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800 }}>
+                        <sc.icon size={12} /> {v.ds}
+                      </span>
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        {['Pending', 'Completed', 'Missed'].filter(s => s !== v.ds).map(ns => (
+                          <button 
+                            key={ns}
+                            disabled={updatingId === v._id}
+                            onClick={() => setConfirmModal({ id: v._id, newStatus: ns, vaccineName: v.vaccineName, childName: v.babyName })}
+                            style={{ 
+                                padding: '0.45rem 0.75rem', borderRadius: '8px', border: 'none', 
+                                background: ns === 'Completed' ? C.greenLight : ns === 'Missed' ? C.redLight : C.bg,
+                                color: ns === 'Completed' ? C.green : ns === 'Missed' ? C.red : C.secondary,
+                                fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s',
+                                display: 'flex', alignItems: 'center', gap: '0.3rem'
+                            }}
+                          >
+                            {ns === 'Completed' ? <Check size={14} /> : ns === 'Missed' ? <X size={14} /> : <RotateCcw size={14} />} {ns}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }) : (
+                <tr>
+                  <td colSpan="6" style={{ padding: '5rem', textAlign: 'center' }}>
+                    <p style={{ fontWeight: 800, color: C.text, fontSize: '1.1rem' }}>No vaccination records found</p>
+                    <p style={{ color: C.muted, marginTop: '0.5rem' }}>Adjust your filters or search keywords.</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          {/* Pagination Footer */}
+          <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ fontSize: '0.85rem', color: C.muted, fontWeight: 600 }}>
+              Showing {paginated.length} of {filtered.length} entries
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button 
+                disabled={page === 1}
+                onClick={() => setPage(prev => prev - 1)}
+                style={{ padding: '0.5rem', borderRadius: '8px', border: `1.5px solid ${C.border}`, background: 'white', color: page === 1 ? C.muted : C.text, cursor: page === 1 ? 'not-allowed' : 'pointer', display: 'flex' }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setPage(i + 1)}
+                    style={{ 
+                      width: '32px', height: '32px', borderRadius: '8px', border: 'none', 
+                      background: page === i + 1 ? C.primary : 'transparent',
+                      color: page === i + 1 ? 'white' : C.text,
+                      fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer'
+                    }}
+                  >
+                    {i + 1}
+                  </button>
                 ))}
               </div>
-              <div style={{ position:'relative' }}>
-                <svg style={{ position:'absolute', left:'0.75rem', top:'50%', transform:'translateY(-50%)', width:'15px', height:'15px', color:'#94A3B8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                <input type="text" placeholder="Search child or vaccine..." value={search}
-                  onChange={e=>{ setSearch(e.target.value); setPage(1); }}
-                  style={{ paddingLeft:'2.25rem', paddingRight:'1rem', paddingTop:'0.55rem', paddingBottom:'0.55rem', border:'1.5px solid #E2E8F0', borderRadius:'9px', fontSize:'0.875rem', fontWeight:500, color:'#0F172A', outline:'none', width:'220px', background:'#F8FAFC' }}
-                />
-              </div>
-              <select value={rowsPerPage} onChange={e=>{ setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                style={{ padding:'0.55rem 0.75rem', border:'1.5px solid #E2E8F0', borderRadius:'9px', fontSize:'0.875rem', fontWeight:600, color:'#374151', background:'#F8FAFC', cursor:'pointer' }}>
-                {[10,20,50].map(n=><option key={n} value={n}>{n} rows</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ overflowX:'auto' }}>
-            <table style={{ width:'100%', borderCollapse:'collapse', textAlign:'left' }}>
-              <thead>
-                <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
-                  {['#','Child','Vaccine','Age Label','Description','Date','Status','Actions'].map(h=>(
-                    <th key={h} style={{ padding:'0.9rem 1rem', fontSize:'0.72rem', fontWeight:800, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.07em', whiteSpace:'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan="8" style={{ padding:'4rem', textAlign:'center', color:'#94A3B8' }}>Loading records...</td></tr>
-                ) : paginated.length===0 ? (
-                  <tr><td colSpan="8" style={{ padding:'4rem', textAlign:'center', color:'#94A3B8', fontWeight:600 }}>No records found.</td></tr>
-                ) : paginated.map((v,i)=>{
-                  const sc = SC[v.ds]||SC.Pending;
-                  return (
-                    <tr key={v._id} style={{ borderBottom:'1px solid #F1F5F9' }}
-                      onMouseEnter={e=>e.currentTarget.style.background='#F8FAFC'}
-                      onMouseLeave={e=>e.currentTarget.style.background='white'}>
-                      <td style={{ padding:'1rem', color:'#94A3B8', fontSize:'0.85rem', fontWeight:600 }}>{(page-1)*rowsPerPage+i+1}</td>
-                      <td style={{ padding:'1rem' }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:'0.6rem' }}>
-                          <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:'#EFF6FF', color:'#2563EB', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'0.9rem', flexShrink:0 }}>
-                            {(v.babyName||'?').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p style={{ fontWeight:700, color:'#0F172A', fontSize:'0.875rem' }}>{v.babyName||'Unknown'}</p>
-                            <p style={{ fontSize:'0.72rem', color:'#94A3B8' }}>{v.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding:'1rem', fontWeight:700, color:'#1E40AF', fontSize:'0.875rem' }}>{v.vaccineName}</td>
-                      <td style={{ padding:'1rem' }}>
-                        {v.ageLabel
-                          ? <span style={{ padding:'0.2rem 0.65rem', background:'#EFF6FF', color:'#1D4ED8', borderRadius:'20px', fontSize:'0.72rem', fontWeight:700 }}>{v.ageLabel}</span>
-                          : <span style={{ color:'#CBD5E1' }}>—</span>}
-                      </td>
-                      <td style={{ padding:'1rem', maxWidth:'180px' }}>
-                        <p style={{ fontSize:'0.8rem', color:'#64748B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={v.description}>
-                          {v.description||<span style={{ color:'#CBD5E1' }}>—</span>}
-                        </p>
-                      </td>
-                      <td style={{ padding:'1rem', fontWeight:600, fontSize:'0.875rem', color:'#374151', whiteSpace:'nowrap' }}>
-                        {new Date(v.scheduleDate).toLocaleDateString('en-US',{ month:'short', day:'numeric', year:'numeric' })}
-                      </td>
-                      <td style={{ padding:'1rem' }}>
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:'0.4rem', padding:'0.3rem 0.75rem', borderRadius:'20px', fontSize:'0.75rem', fontWeight:800, background:sc.bg, color:sc.color }}>
-                          <span style={{ width:'6px', height:'6px', borderRadius:'50%', background:sc.dot, display:'inline-block' }}></span>
-                          {v.ds}
-                        </span>
-                      </td>
-                      <td style={{ padding:'1rem' }}>
-                        <div style={{ display:'flex', gap:'0.35rem', flexWrap:'wrap' }}>
-                          {['Pending','Completed','Missed'].filter(s=>s!==v.ds).map(ns=>(
-                            <button key={ns}
-                              disabled={updatingId===v._id}
-                              onClick={()=>setConfirmModal({ id:v._id, newStatus:ns, vaccineName:v.vaccineName, childName:v.babyName })}
-                              style={{
-                                padding:'0.3rem 0.65rem', borderRadius:'7px', border:'none', cursor:'pointer', fontSize:'0.72rem', fontWeight:700,
-                                background: ns==='Completed'?'#ECFDF5':ns==='Missed'?'#FEF2F2':'#F8FAFC',
-                                color: ns==='Completed'?'#065F46':ns==='Missed'?'#991B1B':'#374151',
-                                opacity:updatingId===v._id?0.5:1
-                              }}>
-                              {ns==='Completed'?'✓':ns==='Missed'?'✕':'↺'} {ns}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ padding:'1rem 1.5rem', borderTop:'1px solid #F1F5F9', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <p style={{ fontSize:'0.85rem', color:'#64748B' }}>Showing {Math.min((page-1)*rowsPerPage+1,filtered.length)}–{Math.min(page*rowsPerPage,filtered.length)} of {filtered.length}</p>
-            <div style={{ display:'flex', gap:'0.35rem', alignItems:'center' }}>
-              <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
-                style={{ padding:'0.45rem 0.7rem', border:'1px solid #E2E8F0', borderRadius:'7px', background:'white', cursor:page===1?'not-allowed':'pointer', color:page===1?'#CBD5E1':'#374151', fontWeight:700 }}>‹</button>
-              {Array.from({length:totalPages},(_,i)=>i+1).filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1).map((p,idx,arr)=>(
-                <React.Fragment key={p}>
-                  {idx>0&&arr[idx-1]!==p-1&&<span style={{ color:'#94A3B8',padding:'0 0.25rem' }}>…</span>}
-                  <button onClick={()=>setPage(p)} style={{ width:'32px',height:'32px',borderRadius:'7px',border:'1px solid',borderColor:page===p?'#2563EB':'#E2E8F0',background:page===p?'#2563EB':'white',color:page===p?'white':'#374151',fontWeight:700,fontSize:'0.875rem',cursor:'pointer' }}>{p}</button>
-                </React.Fragment>
-              ))}
-              <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-                style={{ padding:'0.45rem 0.7rem', border:'1px solid #E2E8F0', borderRadius:'7px', background:'white', cursor:page===totalPages?'not-allowed':'pointer', color:page===totalPages?'#CBD5E1':'#374151', fontWeight:700 }}>›</button>
+              <button 
+                disabled={page === totalPages || totalPages === 0}
+                onClick={() => setPage(prev => prev + 1)}
+                style={{ padding: '0.5rem', borderRadius: '8px', border: `1.5px solid ${C.border}`, background: 'white', color: (page === totalPages || totalPages === 0) ? C.muted : C.text, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer', display: 'flex' }}
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
           </div>
         </div>
+
       </div>
 
-      {confirmModal&&(
+      {/* --- Confirmation Modal --- */}
+      {confirmModal && (
         <>
-          <div onClick={()=>setConfirmModal(null)} style={{ position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',zIndex:999,backdropFilter:'blur(4px)' }}/>
-          <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',background:'white',borderRadius:'20px',padding:'2rem',width:'min(440px,95vw)',zIndex:1000,boxShadow:'0 25px 60px rgba(0,0,0,0.15)' }}>
-            <div style={{ width:'52px',height:'52px',borderRadius:'14px',background:confirmModal.newStatus==='Completed'?'#ECFDF5':confirmModal.newStatus==='Missed'?'#FEF2F2':'#F8FAFC',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'1.25rem',fontSize:'1.5rem' }}>
-              {confirmModal.newStatus==='Completed'?'✅':confirmModal.newStatus==='Missed'?'🚫':'🔄'}
-            </div>
-            <h3 style={{ fontSize:'1.2rem',fontWeight:800,color:'#0F172A',marginBottom:'0.5rem' }}>Confirm Status Update</h3>
-            <p style={{ color:'#64748B',fontSize:'0.95rem',lineHeight:1.6,marginBottom:'1.5rem' }}>
-              Update <strong>{confirmModal.vaccineName}</strong> for <strong>{confirmModal.childName}</strong> to{' '}
-              <strong style={{ color:SC[confirmModal.newStatus].color }}>{confirmModal.newStatus}</strong>?
-            </p>
-            <div style={{ display:'flex',gap:'0.75rem' }}>
-              <button onClick={()=>setConfirmModal(null)} style={{ flex:1,padding:'0.8rem',background:'#F8FAFC',border:'1.5px solid #E2E8F0',borderRadius:'10px',fontWeight:700,cursor:'pointer',color:'#374151' }}>Cancel</button>
-              <button onClick={handleStatusUpdate} style={{ flex:2,padding:'0.8rem',border:'none',borderRadius:'10px',fontWeight:800,cursor:'pointer',color:'white',background:confirmModal.newStatus==='Completed'?'#059669':confirmModal.newStatus==='Missed'?'#DC2626':'#2563EB' }}>
-                Mark as {confirmModal.newStatus}
-              </button>
+          <div onClick={() => setConfirmModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1000 }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '450px', background: 'white', zIndex: 1001, borderRadius: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', animation: 'modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '18px', background: confirmModal.newStatus === 'Completed' ? C.greenLight : confirmModal.newStatus === 'Missed' ? C.redLight : C.amberLight, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: confirmModal.newStatus === 'Completed' ? C.green : confirmModal.newStatus === 'Missed' ? C.red : C.amber }}>
+                {confirmModal.newStatus === 'Completed' ? <Check size={32} strokeWidth={3} /> : confirmModal.newStatus === 'Missed' ? <X size={32} strokeWidth={3} /> : <RotateCcw size={32} strokeWidth={3} />}
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: C.text, marginBottom: '0.75rem' }}>Update Clinical Status</h3>
+              <p style={{ color: C.secondary, fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+                Marking <strong>{confirmModal.vaccineName}</strong> as <strong style={{ color: SC[confirmModal.newStatus].color }}>{confirmModal.newStatus}</strong> for patient <strong>{confirmModal.childName}</strong>. 
+                <br /><span style={{ fontSize: '0.85rem' }}>This action will be logged in the medical record.</span>
+              </p>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button onClick={() => setConfirmModal(null)} style={{ flex: 1, padding: '0.85rem', background: '#F1F5F9', border: 'none', borderRadius: '12px', fontWeight: 800, color: C.secondary, cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleStatusUpdate} style={{ flex: 2, padding: '0.85rem', background: SC[confirmModal.newStatus].color, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                    Confirm {confirmModal.newStatus}
+                </button>
+              </div>
             </div>
           </div>
         </>
       )}
+
+      <style>{`
+        @keyframes modalSlide {
+          from { transform: translate(-50%, -40%); opacity: 0; }
+          to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </AdminLayout>
   );
 };

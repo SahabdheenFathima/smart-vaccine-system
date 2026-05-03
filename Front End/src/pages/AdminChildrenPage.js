@@ -2,13 +2,57 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/templates/AdminLayout';
 import toast from 'react-hot-toast';
+import { 
+  Search, 
+  Baby, 
+  ChevronRight, 
+  Filter, 
+  MoreVertical, 
+  Weight, 
+  Ruler, 
+  Calendar, 
+  Mail, 
+  User, 
+  AlertCircle,
+  FileText,
+  Download,
+  Trash2,
+  Edit2,
+  Info,
+  Clock,
+  ArrowUpRight,
+  TrendingUp,
+  ShieldCheck,
+  Activity,
+  Users
+} from 'lucide-react';
+
+// --- Design Tokens ---
+const C = {
+  bg: '#F8FAFC',
+  card: '#FFFFFF',
+  border: '#E2E8F0',
+  primary: '#4F46E5',
+  primaryLight: '#EEF2FF',
+  secondary: '#64748B',
+  text: '#0F172A',
+  muted: '#94A3B8',
+  red: '#EF4444',
+  redLight: '#FEE2E2',
+  green: '#10B981',
+  greenLight: '#D1FAE5',
+  blue: '#3B82F6',
+  blueLight: '#DBEAFE',
+};
 
 const AdminChildrenPage = () => {
   const [userData, setUserData] = useState(null);
   const [childrenData, setChildrenData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('All');
   const [selectedChild, setSelectedChild] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,188 +93,375 @@ const AdminChildrenPage = () => {
     }
   };
 
-  const filteredChildren = useMemo(() => {
-    if (searchTerm.trim() === '') return childrenData;
-    const lower = searchTerm.toLowerCase();
-    return childrenData.filter(c => 
-      c.babyName?.toLowerCase().includes(lower) || 
-      c.email?.toLowerCase().includes(lower) // Parent email
-    );
-  }, [searchTerm, childrenData]);
-
   // Helper to calculate age in months
   const calculateAgeMonths = (birthDate) => {
-      const dob = new Date(birthDate);
-      const today = new Date();
-      let months = (today.getFullYear() - dob.getFullYear()) * 12;
-      months -= dob.getMonth();
-      months += today.getMonth();
-      return months <= 0 ? 0 : months;
+    const dob = new Date(birthDate);
+    const today = new Date();
+    let months = (today.getFullYear() - dob.getFullYear()) * 12;
+    months -= dob.getMonth();
+    months += today.getMonth();
+    return months <= 0 ? 0 : months;
   };
 
+  const filteredChildren = useMemo(() => {
+    let result = childrenData;
+    
+    // Search Filter
+    if (searchTerm.trim() !== '') {
+      const lower = searchTerm.toLowerCase();
+      result = result.filter(c => 
+        c.babyName?.toLowerCase().includes(lower) || 
+        c.email?.toLowerCase().includes(lower)
+      );
+    }
+
+    // Status Filter
+    if (filterType === 'Flagged') {
+      result = result.filter(child => {
+        const ageMonths = calculateAgeMonths(child.birthDate);
+        return child.weight && parseFloat(child.weight) < 3000 && ageMonths > 6;
+      });
+    } else if (filterType === 'Newborn') {
+      result = result.filter(child => calculateAgeMonths(child.birthDate) <= 1);
+    }
+
+    return result;
+  }, [searchTerm, filterType, childrenData]);
+
+  const stats = useMemo(() => {
+    const flagged = childrenData.filter(child => {
+      const ageMonths = calculateAgeMonths(child.birthDate);
+      return child.weight && parseFloat(child.weight) < 3000 && ageMonths > 6;
+    }).length;
+    
+    const newborn = childrenData.filter(child => calculateAgeMonths(child.birthDate) <= 1).length;
+
+    return [
+      { label: 'Total Children', value: childrenData.length, icon: Baby, color: C.primary, bg: C.primaryLight },
+      { label: 'Newborns', value: newborn, icon: Clock, color: C.blue, bg: C.blueLight },
+      { label: 'Flagged Profiles', value: flagged, icon: AlertCircle, color: C.red, bg: C.redLight },
+      { label: 'Growth tracked', value: childrenData.filter(c => c.weight).length, icon: TrendingUp, color: C.green, bg: C.greenLight },
+    ];
+  }, [childrenData]);
+
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
-      <div className="badge-premium animate-pulse">Loading Universal Patient Database...</div>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: '48px', height: '48px', border: `3px solid ${C.primary}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+        <p style={{ fontWeight: 700, color: C.muted }}>Accessing Pediatric Database...</p>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   return (
     <AdminLayout user={userData}>
-      <div className="container-full py-12 animate-slide">
-        <header className="flex-center-between mb-big">
-          <div>
-            <h1 className="text-huge">Child Profiles Database</h1>
-            <p className="text-muted mt-2" style={{ fontSize: '1.125rem' }}>Manage all pediatric health records and growth timelines.</p>
+      <div style={{ background: C.bg, minHeight: '100vh', padding: '2rem 2.5rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        
+        {/* --- Header --- */}
+        <header style={{ marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div>
+              <h1 style={{ fontSize: '1.9rem', fontWeight: 900, color: C.text, letterSpacing: '-0.025em' }}>Child Profiles Database</h1>
+              <p style={{ color: C.muted, marginTop: '0.4rem', fontSize: '1rem' }}>Central repository for all pediatric health records and clinical history.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'white', border: `1px solid ${C.border}`, borderRadius: '10px', fontWeight: 700, color: C.text, cursor: 'pointer' }}>
+                <Download size={18} /> Export Data
+              </button>
+              <button onClick={() => navigate('/add-baby')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: C.primary, border: 'none', borderRadius: '10px', fontWeight: 700, color: 'white', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+                <User size={18} /> Register Child
+              </button>
+            </div>
           </div>
-          <div style={{ position: 'relative', width: '350px' }}>
-            <input 
-              type="text" 
-              placeholder="Search by child name or parent email..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-premium w-full"
-              style={{ paddingLeft: '2.5rem' }}
-            />
-            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+
+          {/* Stats Bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
+            {stats.map((s, idx) => (
+              <div key={idx} style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <s.icon size={24} color={s.color} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</p>
+                  <p style={{ fontSize: '1.75rem', fontWeight: 900, color: C.text, marginTop: '0.1rem', lineHeight: 1 }}>{s.value}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </header>
 
-        <div className="grid-main" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-            {filteredChildren.length > 0 ? filteredChildren.map(child => {
-                const ageMonths = calculateAgeMonths(child.birthDate);
-                // Mock risk calculation based on weight (just for UI demonstration)
-                const isUnderweight = child.weight && parseFloat(child.weight) < 3.0 && ageMonths > 6;
-                
-                return (
-                <div key={child._id} className="card-premium" style={{ display: 'flex', flexDirection: 'column', borderTop: isUnderweight ? '4px solid #ef4444' : '4px solid var(--primary)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                        <div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{child.babyName}</h3>
-                            <p className="text-muted text-sm">{new Date(child.birthDate).toLocaleDateString()}</p>
-                        </div>
-                        <div style={{ background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '8px', fontSize: '1.25rem' }}>
-                            👶
-                        </div>
-                    </div>
+        {/* --- Filters & Search --- */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.4rem', borderRadius: '12px', border: `1px solid ${C.border}` }}>
+            {['All', 'Newborn', 'Flagged'].map(t => (
+              <button 
+                key={t}
+                onClick={() => setFilterType(t)}
+                style={{ 
+                  padding: '0.5rem 1.25rem', borderRadius: '8px', border: 'none', 
+                  background: filterType === t ? C.primaryLight : 'transparent',
+                  color: filterType === t ? C.primary : C.muted,
+                  fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                        <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.75rem', borderRadius: '8px' }}>
-                            <div className="text-muted text-xs font-bold uppercase">Age</div>
-                            <div style={{ fontWeight: 700 }}>{ageMonths} months</div>
-                        </div>
-                        <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.75rem', borderRadius: '8px' }}>
-                            <div className="text-muted text-xs font-bold uppercase">Weight</div>
-                            <div style={{ fontWeight: 700, color: isUnderweight ? '#ef4444' : 'inherit' }}>
-                                {child.weight || '--'} kg
-                            </div>
-                        </div>
-                        <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.75rem', borderRadius: '8px', gridColumn: 'span 2' }}>
-                            <div className="text-muted text-xs font-bold uppercase">Parent Email</div>
-                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{child.email}</div>
-                        </div>
-                    </div>
-
-                    {isUnderweight && (
-                        <div style={{ marginBottom: '1rem', padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            ⚠️ Flagged: Low Weight Profile
-                        </div>
-                    )}
-
-                    <button 
-                        onClick={() => setSelectedChild(child)}
-                        className="btn-outline-premium mt-auto" style={{ width: '100%', padding: '0.6rem' }}
-                    >
-                        View Full Medical Record
-                    </button>
-                </div>
-            )}) : (
-                <div style={{ gridColumn: '1 / -1', padding: '4rem', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '16px' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
-                    <p style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-secondary)' }}>No child profiles found.</p>
-                </div>
-            )}
+          <div style={{ display: 'flex', gap: '1rem', flex: 1, maxWidth: '500px' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={18} color={C.muted} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="Search patient name, parent email, or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, background: 'white', fontSize: '0.9rem', outline: 'none', transition: 'border-color 0.2s' }}
+                onFocus={(e) => e.target.style.borderColor = C.primary}
+                onBlur={(e) => e.target.style.borderColor = C.border}
+              />
+            </div>
+            <button style={{ padding: '0.75rem', background: 'white', border: `1px solid ${C.border}`, borderRadius: '12px', color: C.text, cursor: 'pointer' }}>
+              <Filter size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Profile Detail Drawer */}
-        {selectedChild && (
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '500px', background: 'var(--bg-card)', boxShadow: '-5px 0 25px rgba(0,0,0,0.1)', zIndex: 1000, display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.3s ease-out' }}>
-            <div style={{ padding: '2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 className="text-title" style={{ fontSize: '1.5rem' }}>Patient Medical Record</h2>
-              <button onClick={() => setSelectedChild(null)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>&times;</button>
-            </div>
-            
-            <div style={{ padding: '2rem', flex: 1, overflowY: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
-                <div style={{ width: '80px', height: '80px', borderRadius: '16px', background: 'var(--bg-main)', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}>
-                  👶
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.75rem', fontWeight: 900 }}>{selectedChild.babyName}</h3>
-                  <p className="text-muted font-bold mt-1">Reg ID: {selectedChild._id.substring(0, 8).toUpperCase()}</p>
-                </div>
-              </div>
+        {/* --- Children Data List --- */}
+        <div style={{ background: 'white', borderRadius: '20px', border: `1px solid ${C.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: `1px solid ${C.border}` }}>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Patient Details</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Age / Vital Metrics</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contact Entity</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Registry Status</th>
+                <th style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredChildren.length > 0 ? filteredChildren.map(child => {
+                const ageMonths = calculateAgeMonths(child.birthDate);
+                const isFlagged = child.weight && parseFloat(child.weight) < 3000 && ageMonths > 6;
+                const weightKg = child.weight ? (parseFloat(child.weight) / 1000).toFixed(1) : '--';
 
-              <div style={{ marginBottom: '2rem' }}>
-                  <h4 className="text-sm font-bold uppercase text-muted mb-3">Demographics & Origin</h4>
-                  <div style={{ background: 'var(--bg-main)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span className="text-muted font-semibold">Date of Birth:</span>
-                          <span className="font-bold">{new Date(selectedChild.birthDate).toLocaleDateString()}</span>
+                return (
+                  <tr key={child._id} style={{ borderBottom: `1px solid ${C.border}`, transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F9FAFB'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: C.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, fontWeight: 800 }}>
+                          <Baby size={20} />
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 800, color: C.text, fontSize: '0.95rem' }}>{child.babyName}</p>
+                          <p style={{ fontSize: '0.75rem', color: C.muted, marginTop: '0.1rem' }}>UID: {child._id.substring(0, 8).toUpperCase()}</p>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span className="text-muted font-semibold">Delivery Method:</span>
-                          <span className="font-bold">{selectedChild.deliveryMethod || 'N/A'}</span>
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: '0.9rem', color: C.text }}>{ageMonths} months</p>
+                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
+                            <span style={{ fontSize: '0.7rem', color: C.muted, display: 'flex', alignItems: 'center', gap: '0.2rem' }}><Weight size={10} /> {weightKg} kg</span>
+                            <span style={{ fontSize: '0.7rem', color: C.muted, display: 'flex', alignItems: 'center', gap: '0.2rem' }}><Ruler size={10} /> {child.height || '--'} cm</span>
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span className="text-muted font-semibold">Mother's Name:</span>
-                          <span className="font-bold">{selectedChild.motherName || 'N/A'}</span>
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      <div>
+                        <p style={{ fontWeight: 700, fontSize: '0.85rem', color: C.text }}>{child.motherName || 'Not Stated'}</p>
+                        <p style={{ fontSize: '0.75rem', color: C.muted, marginTop: '0.1rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Mail size={12} /> {child.email}</p>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span className="text-muted font-semibold">Parent Contact:</span>
-                          <span className="font-bold">{selectedChild.email}</span>
-                      </div>
-                  </div>
-              </div>
-
-              <div style={{ marginBottom: '2rem' }}>
-                  <h4 className="text-sm font-bold uppercase text-muted mb-3">Vitals Check (Registration)</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #3b82f6' }}>
-                          <span className="text-muted text-xs font-bold uppercase">Weight</span>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{selectedChild.weight || '--'} kg</div>
-                      </div>
-                      <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
-                          <span className="text-muted text-xs font-bold uppercase">Height</span>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{selectedChild.height || '--'} cm</div>
-                      </div>
-                      <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #8b5cf6', gridColumn: 'span 2' }}>
-                          <span className="text-muted text-xs font-bold uppercase">Head Circumference</span>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{selectedChild.headCircumference || '--'} cm</div>
-                      </div>
-                  </div>
-              </div>
-
-              <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
-                <h4 className="text-sm font-bold uppercase text-muted mb-4">Admin Data Operations</h4>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button className="btn-premium" style={{ flex: 1, background: '#f59e0b', color: 'white' }}>✏️ Edit Record</button>
-                  <button className="btn-outline-premium" style={{ flex: 1, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)', background: 'rgba(239, 68, 68, 0.05)' }}>🚫 Flag Invalid</button>
-                </div>
-              </div>
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
+                      {isFlagged ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', background: C.redLight, color: C.red, borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800 }}>
+                          <AlertCircle size={12} /> Underweight Flag
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', background: C.greenLight, color: C.green, borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800 }}>
+                          <ShieldCheck size={12} /> Healthy Profile
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                      <button 
+                        onClick={() => setSelectedChild(child)}
+                        style={{ padding: '0.5rem 1rem', background: 'white', border: `1.5px solid ${C.border}`, borderRadius: '10px', color: C.primary, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => { e.target.style.background = C.primary; e.target.style.color = 'white'; e.target.style.borderColor = C.primary; }}
+                        onMouseLeave={(e) => { e.target.style.background = 'white'; e.target.style.color = C.primary; e.target.style.borderColor = C.border; }}
+                      >
+                        Clinical Summary
+                      </button>
+                    </td>
+                  </tr>
+                );
+              }) : (
+                <tr>
+                  <td colSpan="5" style={{ padding: '5rem', textAlign: 'center' }}>
+                    <div style={{ width: '64px', height: '64px', background: '#F1F5F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                      <Search size={32} color={C.muted} />
+                    </div>
+                    <p style={{ fontWeight: 800, color: C.text, fontSize: '1.1rem' }}>No medical records matched your search</p>
+                    <p style={{ color: C.muted, marginTop: '0.5rem' }}>Try adjusting your keywords or filters.</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ fontSize: '0.85rem', color: C.muted, fontWeight: 600 }}>Showing {filteredChildren.length} of {childrenData.length} patient records</p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button style={{ padding: '0.5rem 1rem', background: 'white', border: `1px solid ${C.border}`, borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: C.muted, cursor: 'not-allowed' }}>Previous</button>
+              <button style={{ padding: '0.5rem 1rem', background: 'white', border: `1px solid ${C.border}`, borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: C.text, cursor: 'pointer' }}>Next</button>
             </div>
           </div>
-        )}
-        
-        {/* Dim background when drawer is open */}
+        </div>
+
+        {/* --- Detailed Patient Side Panel --- */}
         {selectedChild && (
-          <div onClick={() => setSelectedChild(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 999, backdropFilter: 'blur(2px)' }}></div>
+          <>
+            <div 
+              onClick={() => setSelectedChild(null)} 
+              style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1000, transition: 'all 0.3s' }} 
+            />
+            <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '550px', background: 'white', zIndex: 1001, display: 'flex', flexDirection: 'column', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', animation: 'slideLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+              
+              {/* Drawer Header */}
+              <div style={{ padding: '2rem', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: C.primary, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Baby size={28} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: C.text }}>Clinical Summary</h2>
+                    <p style={{ fontSize: '0.8rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient ID: {selectedChild._id}</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedChild(null)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', border: `1px solid ${C.border}`, color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  &times;
+                </button>
+              </div>
+
+              {/* Drawer Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '2.5rem' }}>
+                
+                {/* Section: Basic Profile */}
+                <section style={{ marginBottom: '2.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <Info size={18} color={C.primary} />
+                    <h3 style={{ fontWeight: 800, fontSize: '1rem', color: C.text }}>Biometric Identity</h3>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                    <div style={{ background: '#F1F5F9', padding: '1.25rem', borderRadius: '16px' }}>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Full Name</p>
+                      <p style={{ fontWeight: 900, color: C.text, fontSize: '1.1rem' }}>{selectedChild.babyName}</p>
+                    </div>
+                    <div style={{ background: '#F1F5F9', padding: '1.25rem', borderRadius: '16px' }}>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Birth Date</p>
+                      <p style={{ fontWeight: 900, color: C.text, fontSize: '1.1rem' }}>{new Date(selectedChild.birthDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
+                    </div>
+                    <div style={{ background: '#F1F5F9', padding: '1.25rem', borderRadius: '16px' }}>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Mother's Name</p>
+                      <p style={{ fontWeight: 900, color: C.text, fontSize: '1.1rem' }}>{selectedChild.motherName || 'N/A'}</p>
+                    </div>
+                    <div style={{ background: '#F1F5F9', padding: '1.25rem', borderRadius: '16px' }}>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Delivery Mode</p>
+                      <p style={{ fontWeight: 900, color: C.primary, fontSize: '1.1rem' }}>{selectedChild.deliveryMethod || 'Normal'}</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Section: Medical Vitals */}
+                <section style={{ marginBottom: '2.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <Activity size={18} color={C.green} />
+                    <h3 style={{ fontWeight: 800, fontSize: '1rem', color: C.text }}>Biochemical Vitals (At Birth)</h3>
+                  </div>
+                  <div style={{ background: 'white', border: `1.5px solid ${C.border}`, borderRadius: '20px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: C.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary }}><Weight size={20} /></div>
+                        <div><p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.muted }}>Weight</p><p style={{ fontWeight: 900, fontSize: '1.1rem' }}>{selectedChild.weight || '--'} g</p></div>
+                      </div>
+                      <div style={{ height: '4px', width: '100px', background: C.border, borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: '70%', background: C.primary }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: C.greenLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.green }}><Ruler size={20} /></div>
+                        <div><p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.muted }}>Height</p><p style={{ fontWeight: 900, fontSize: '1.1rem' }}>{selectedChild.height || '--'} cm</p></div>
+                      </div>
+                      <div style={{ height: '4px', width: '100px', background: C.border, borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: '60%', background: C.green }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: C.blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.blue }}><Info size={20} /></div>
+                      <div><p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.muted }}>Head Circumference</p><p style={{ fontWeight: 900, fontSize: '1.1rem' }}>{selectedChild.headCircumference || '--'} cm</p></div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Section: Parent / Guardian */}
+                <section style={{ marginBottom: '2.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <Users size={18} color={C.blue} />
+                    <h3 style={{ fontWeight: 800, fontSize: '1rem', color: C.text }}>Parent / Guardian Registry</h3>
+                  </div>
+                  <div style={{ background: '#F8FAFC', border: `1px dashed ${C.border}`, borderRadius: '16px', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                      <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: 'white' }}>{selectedChild.motherName?.charAt(0) || 'P'}</div>
+                      <div>
+                        <p style={{ fontWeight: 800, fontSize: '0.95rem' }}>{selectedChild.motherName || 'Unknown'}</p>
+                        <p style={{ fontSize: '0.8rem', color: C.muted }}>Primary Guardian</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: C.secondary, fontSize: '0.85rem' }}>
+                        <Mail size={14} /> {selectedChild.email}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: C.secondary, fontSize: '0.85rem' }}>
+                        <Calendar size={14} /> Mother's Age: {selectedChild.motherAge || 'N/A'} yrs
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                  <button style={{ flex: 1, padding: '1rem', background: C.primary, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <Edit2 size={16} /> Edit Profile
+                  </button>
+                  <button style={{ flex: 1, padding: '1rem', background: 'white', color: C.red, border: `1.5px solid ${C.red}20`, borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <Trash2 size={16} /> Delete Record
+                  </button>
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div style={{ padding: '1.5rem 2.5rem', background: '#F8FAFC', borderTop: `1px solid ${C.border}` }}>
+                <button style={{ width: '100%', padding: '0.85rem', background: 'white', border: `1.5px solid ${C.border}`, borderRadius: '10px', color: C.text, fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem' }}>
+                  <FileText size={18} /> Generate Full Clinical Report (PDF)
+                </button>
+              </div>
+            </div>
+          </>
         )}
 
       </div>
       <style>{`
-        @keyframes slideInRight {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+        @keyframes slideLeft {
+          from { transform: translateX(100%); opacity: 0.8; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </AdminLayout>

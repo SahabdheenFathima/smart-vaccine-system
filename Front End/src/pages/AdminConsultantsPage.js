@@ -1,21 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/templates/AdminLayout';
 import toast from 'react-hot-toast';
+import { 
+  Users, 
+  Plus, 
+  Search, 
+  Filter, 
+  ChevronLeft, 
+  ChevronRight, 
+  MoreVertical, 
+  User, 
+  Mail, 
+  ShieldCheck, 
+  Award, 
+  Stethoscope, 
+  Clock, 
+  Calendar, 
+  MapPin, 
+  Edit2, 
+  Trash2, 
+  CheckCircle, 
+  AlertCircle,
+  Briefcase,
+  Hospital,
+  ArrowUpRight,
+  Info,
+  X
+} from 'lucide-react';
+
+// --- Design Tokens ---
+const C = {
+  bg: '#F8FAFC',
+  card: '#FFFFFF',
+  border: '#E2E8F0',
+  primary: '#4F46E5',
+  primaryLight: '#EEF2FF',
+  secondary: '#64748B',
+  text: '#0F172A',
+  muted: '#94A3B8',
+  red: '#EF4444',
+  redLight: '#FEE2E2',
+  green: '#10B981',
+  greenLight: '#D1FAE5',
+  blue: '#3B82F6',
+  blueLight: '#DBEAFE',
+  amber: '#F59E0B',
+  amberLight: '#FEF3C7',
+};
 
 const AdminConsultantsPage = () => {
+  const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [consultants, setConsultants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  
+  // Search & Filter State
+  const [search, setSearch] = useState('');
+  const [filterDept, setFilterDept] = useState('All');
 
   // Modal states
-  const [isConsultantModalOpen, setIsConsultantModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentConsultant, setCurrentConsultant] = useState(null);
-  
-  // Smart Availability State
   const [selectedDays, setSelectedDays] = useState([]);
   const [selectedSlots, setSelectedSlots] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const commonSlots = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM'];
@@ -39,7 +92,7 @@ const AdminConsultantsPage = () => {
           body: JSON.stringify({ token }),
         });
         const data = await res.json();
-        if (data.status === "ok") {
+        if (data.status === "ok" && data.data.role === 'ADMIN') {
           setUserData(data.data);
           fetchConsultants();
         } else {
@@ -58,8 +111,6 @@ const AdminConsultantsPage = () => {
       if (data.status === "ok") setConsultants(data.data);
     } catch (err) { toast.error("Failed to fetch consultants"); }
   };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSaveConsultant = async (e) => {
     e.preventDefault();
@@ -94,15 +145,11 @@ const AdminConsultantsPage = () => {
       const data = await res.json();
       
       if (data.status === "ok") {
-        if (!currentConsultant) {
-          toast.success(`✅ Consultant created! Login credentials sent to ${consultantData.email}`);
-        } else {
-          toast.success('Consultant profile updated');
-        }
-        setIsConsultantModalOpen(false);
+        toast.success(currentConsultant ? 'Profile updated' : 'Consultant onboarded!');
+        setIsModalOpen(false);
         fetchConsultants();
       } else {
-        toast.error(data.error || "Failed to save consultant");
+        toast.error(data.error || "Failed to save");
       }
     } catch (err) {
       toast.error("An error occurred");
@@ -112,12 +159,12 @@ const AdminConsultantsPage = () => {
   };
 
   const handleDelete = async (consultant) => {
-    if (!window.confirm(`Permanently delete Dr. ${consultant.name}'s profile and system account?`)) return;
+    if (!window.confirm(`Permanently delete Dr. ${consultant.name}'s profile?`)) return;
     try {
       const res = await fetch(`http://localhost:5001/api/consultants/${consultant._id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.status === 'ok') {
-        toast.success('Consultant and system account deleted');
+        toast.success('Record deleted');
         fetchConsultants();
       } else {
         toast.error(data.error || 'Deletion failed');
@@ -125,284 +172,404 @@ const AdminConsultantsPage = () => {
     } catch { toast.error('Failed to delete'); }
   };
 
+  // --- Filtering & Pagination ---
+  const filtered = useMemo(() =>
+    consultants.filter(c =>
+      (filterDept === 'All' || c.department === filterDept) &&
+      (c.name.toLowerCase().includes(search.toLowerCase()) || 
+       c.specialization.toLowerCase().includes(search.toLowerCase()))
+    ), [consultants, filterDept, search]);
+
+  const totalPages = Math.ceil(filtered.length / rowsPerPage);
+  const paginated = useMemo(() => filtered.slice((page-1)*rowsPerPage, page*rowsPerPage), [filtered, page, rowsPerPage]);
+
+  const stats = useMemo(() => [
+    { label: 'Total Medical Staff', value: consultants.length, icon: Users, color: C.primary, bg: C.primaryLight },
+    { label: 'Active Status', value: consultants.filter(c => c.status === 'Active').length, icon: ShieldCheck, color: C.green, bg: C.greenLight },
+    { label: 'Pediatric Specialists', value: consultants.filter(c => c.specialization === 'Pediatrician').length, icon: Stethoscope, color: C.blue, bg: C.blueLight },
+    { label: 'Clinical Experience', value: (consultants.reduce((acc, c) => acc + (c.experience || 0), 0) / consultants.length || 0).toFixed(1) + 'y', icon: Award, color: C.amber, bg: C.amberLight },
+  ], [consultants]);
+
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
-      <div className="badge-premium animate-pulse">Loading Admin Dashboard...</div>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: '48px', height: '48px', border: `3px solid ${C.primary}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+        <p style={{ fontWeight: 700, color: C.muted }}>Synchronizing Clinical Directory...</p>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   return (
     <AdminLayout user={userData}>
-      <div className="container-full py-12 animate-slide">
-        <header className="flex-center-between mb-big">
-          <div>
-            <h1 className="text-huge">Admin Dashboard</h1>
-            <p className="text-muted mt-2" style={{ fontSize: '1.125rem' }}>Manage consultants and appointments across departments.</p>
-          </div>
-          <button onClick={() => { 
-            setCurrentConsultant(null); 
-            setSelectedDays(['Monday', 'Wednesday', 'Friday']);
-            setSelectedSlots(['09:00 AM', '10:00 AM', '11:00 AM']);
-            setIsConsultantModalOpen(true); 
-          }} className="btn-premium">
-            + Add Consultant
-          </button>
-        </header>
-
-        {/* Dashboard Analytics Widgets */}
-        <div className="grid-main mb-big" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
-            <div className="card-premium" style={{ padding: '1.5rem' }}>
-                <h4 className="text-muted text-sm font-bold uppercase">Total Consultants</h4>
-                <p className="text-title" style={{ fontSize: '2.5rem', marginTop: '0.5rem', color: 'var(--primary)' }}>{consultants.length}</p>
+      <div style={{ background: C.bg, minHeight: '100vh', padding: '2rem 2.5rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        
+        {/* --- Header --- */}
+        <header style={{ marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div>
+              <h1 style={{ fontSize: '1.9rem', fontWeight: 900, color: C.text, letterSpacing: '-0.025em' }}>Consultant Management</h1>
+              <p style={{ color: C.muted, marginTop: '0.4rem', fontSize: '1rem' }}>Administer medical staff profiles, clinical specializations, and system access.</p>
             </div>
-        </div>
+            <button 
+              onClick={() => { 
+                setCurrentConsultant(null); 
+                setSelectedDays(['Monday', 'Wednesday', 'Friday']);
+                setSelectedSlots(['09:00 AM', '10:00 AM']);
+                setIsModalOpen(true); 
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.7rem 1.5rem', background: C.primary, border: 'none', borderRadius: '12px', fontWeight: 700, color: 'white', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}
+            >
+              <Plus size={18} strokeWidth={3} /> Add Consultant
+            </button>
+          </div>
 
-        {/* Consultants Section */}
-        <section className="mb-big">
-          <h2 className="text-title mb-6">Consultant Management</h2>
-          <div className="grid-main" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-            {consultants.map(c => (
-              <div key={c._id} className="card-premium" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Dr. {c.name}</h3>
-                    <p className="text-muted text-sm">{c.specialization}</p>
-                  </div>
-                  <span className={`badge-premium ${c.status === 'Active' ? '' : 'badge-disabled'}`} style={{ 
-                      background: c.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      color: c.status === 'Active' ? '#10b981' : '#ef4444'
-                  }}>
-                    {c.status}
-                  </span>
+          {/* Stats Bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
+            {stats.map((s, idx) => (
+              <div key={idx} style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <s.icon size={22} color={s.color} strokeWidth={2.5} />
                 </div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  <p><strong>Dept:</strong> {c.department}</p>
-                  <p><strong>Exp:</strong> {c.experience} years</p>
-                  <p><strong>Days:</strong> {c.available_days.join(', ')}</p>
+                <div>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 900, color: C.text, marginTop: '0.1rem', lineHeight: 1 }}>{s.value}</p>
                 </div>
-                <button 
-                  onClick={() => { 
-                    setCurrentConsultant(c); 
-                    setSelectedDays(c.available_days || []);
-                    setSelectedSlots(c.available_slots || []);
-                    setIsConsultantModalOpen(true); 
-                  }}
-                  className="btn-outline-premium mt-auto" style={{ padding: '0.5rem' }}>
-                  Edit Profile
-                </button>
-                <button
-                  onClick={() => handleDelete(c)}
-                  style={{ padding: '0.5rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
-                  🗑 Remove
-                </button>
               </div>
             ))}
           </div>
-        </section>
+        </header>
 
-        {/* Consultant Modal - Redesigned Clean Tech Layout */}
-        {isConsultantModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '2rem' }}>
-            <div className="animate-slide" style={{ 
-              background: 'var(--bg-card)', 
-              width: '100%', 
-              maxWidth: '800px', 
-              maxHeight: '92vh', 
-              overflowY: 'auto', 
-              borderRadius: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              position: 'relative',
-              padding: '2.5rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                <div>
-                    <h2 className="text-huge" style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{currentConsultant ? 'Update Profile' : 'Onboard New Consultant'}</h2>
-                    <p className="text-muted" style={{ fontWeight: 500 }}>{currentConsultant ? 'Modify existing system credentials and availability.' : 'Initialize credentials and configure clinical availability.'}</p>
-                </div>
-                <button onClick={() => setIsConsultantModalOpen(false)} style={{ background: 'var(--bg-main)', border: 'none', width: '40px', height: '40px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
+        {/* --- Filters & Search --- */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.35rem', borderRadius: '12px', border: `1px solid ${C.border}` }}>
+            {['All', 'Child Clinic', 'Vaccination Unit', 'Nutrition Clinic'].map(t => (
+              <button 
+                key={t}
+                onClick={() => { setFilterDept(t); setPage(1); }}
+                style={{ 
+                  padding: '0.5rem 1.25rem', borderRadius: '8px', border: 'none', 
+                  background: filterDept === t ? C.primaryLight : 'transparent',
+                  color: filterDept === t ? C.primary : C.muted,
+                  fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                {t === 'All' ? 'Full Directory' : t}
+              </button>
+            ))}
+          </div>
 
-              <form onSubmit={handleSaveConsultant} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-                
-                {/* 1. Basic Information */}
-                <section>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: 'var(--primary)' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                        </div>
-                        <h3 className="text-title" style={{ fontSize: '1.1rem' }}>Basic Information</h3>
+          <div style={{ display: 'flex', gap: '1rem', flex: 1, maxWidth: '500px' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={18} color={C.muted} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="Search by doctor name or expertise..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                style={{ width: '100%', padding: '0.7rem 1rem 0.7rem 2.75rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, background: 'white', fontSize: '0.875rem', outline: 'none' }}
+              />
+            </div>
+            <select 
+                value={rowsPerPage} 
+                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+                style={{ padding: '0.7rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, background: 'white', fontSize: '0.85rem', fontWeight: 600, color: C.text, outline: 'none' }}
+            >
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+            </select>
+          </div>
+        </div>
+
+        {/* --- Data Table --- */}
+        <div style={{ background: 'white', borderRadius: '20px', border: `1px solid ${C.border}`, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: `1px solid ${C.border}` }}>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Medical Professional</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Clinical Details</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Affiliation</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Experience</th>
+                <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
+                <th style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.length > 0 ? paginated.map(c => (
+                <tr key={c._id} style={{ borderBottom: `1px solid ${C.border}`, transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F9FAFB'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: C.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary }}>
+                        <User size={20} strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: 800, color: C.text, fontSize: '0.9rem' }}>Dr. {c.name}</p>
+                        <p style={{ fontSize: '0.7rem', color: C.muted, display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Mail size={12} /> {c.email}</p>
+                      </div>
                     </div>
-                    
-                    <div className="grid-main" style={{ gap: '1.5rem' }}>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>FULL NAME</label>
-                            <input name="name" defaultValue={currentConsultant?.name} required className="input-field" placeholder="Dr. Jane Smith" style={{ borderRadius: '12px' }} />
-                        </div>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>REGISTRATION NO</label>
-                            <input name="registration_no" defaultValue={currentConsultant?.registration_no} required className="input-field" placeholder="SLMC-XXXXX" style={{ borderRadius: '12px' }} />
-                        </div>
+                  </td>
+                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: C.blue, fontWeight: 800, fontSize: '0.85rem' }}>
+                      <Stethoscope size={14} /> {c.specialization}
                     </div>
-
-                    {!currentConsultant && (
-                        <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(79, 70, 229, 0.04)', borderRadius: '16px', border: '1.5px dashed rgba(79, 70, 229, 0.2)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                <svg width="16" height="16" style={{ color: 'var(--primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.02em' }}>SYSTEM CREDENTIAL EMAIL</label>
-                            </div>
-                            <input name="email" type="email" required className="input-field" placeholder="consultant@hospital.gov.lk" style={{ background: 'white', borderColor: 'rgba(79, 70, 229, 0.15)' }} />
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.75rem', fontWeight: 500 }}>Account activation details will be sent immediately upon creation.</p>
-                        </div>
-                    )}
-                </section>
-
-                <div style={{ height: '1px', background: 'var(--border-color)' }}></div>
-
-                {/* 2. Professional Details */}
-                <section>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: 'var(--primary)' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                        </div>
-                        <h3 className="text-title" style={{ fontSize: '1.1rem' }}>Professional Details</h3>
+                    <p style={{ fontSize: '0.7rem', color: C.muted, marginTop: '0.2rem' }}>{c.qualification}</p>
+                  </td>
+                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: C.secondary, fontSize: '0.85rem' }}>
+                      <Hospital size={14} color={C.muted} /> {c.department}
                     </div>
-
-                    <div className="grid-main" style={{ gap: '1.5rem' }}>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>SPECIALIZATION</label>
-                            <select name="specialization" defaultValue={currentConsultant?.specialization || "Pediatrician"} className="input-field" style={{ height: '52px' }}>
-                                <option>Pediatrician</option>
-                                <option>Vaccination Officer</option>
-                                <option>Child Nutritionist</option>
-                                <option>Development Specialist</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>DEPARTMENT</label>
-                            <select name="department" defaultValue={currentConsultant?.department || "Child Clinic"} className="input-field" style={{ height: '52px' }}>
-                                <option>Child Clinic</option>
-                                <option>Vaccination Unit</option>
-                                <option>Nutrition Clinic</option>
-                                <option>Development Clinic</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>QUALIFICATION</label>
-                            <input name="qualification" defaultValue={currentConsultant?.qualification} required className="input-field" placeholder="MBBS, MD (Pediatrics)" />
-                        </div>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>YEARS OF EXPERIENCE</label>
-                            <input name="experience" type="number" defaultValue={currentConsultant?.experience} required className="input-field" placeholder="10" />
-                        </div>
+                    <p style={{ fontSize: '0.7rem', color: C.muted, marginTop: '0.2rem' }}>{c.hospital_name}</p>
+                  </td>
+                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                    <span style={{ fontWeight: 800, color: C.text, fontSize: '0.85rem' }}>{c.experience} Years</span>
+                  </td>
+                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', background: c.status === 'Active' ? C.greenLight : C.redLight, color: c.status === 'Active' ? C.green : C.red, borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800 }}>
+                      {c.status === 'Active' ? <ShieldCheck size={12} /> : <AlertCircle size={12} />} {c.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button 
+                        onClick={() => { 
+                          setCurrentConsultant(c); 
+                          setSelectedDays(c.available_days || []);
+                          setSelectedSlots(c.available_slots || []);
+                          setIsModalOpen(true); 
+                        }}
+                        style={{ padding: '0.45rem', borderRadius: '8px', border: 'none', background: C.primaryLight, color: C.primary, cursor: 'pointer' }} 
+                        title="Edit Profile"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(c)}
+                        style={{ padding: '0.45rem', borderRadius: '8px', border: 'none', background: C.redLight, color: C.red, cursor: 'pointer' }} 
+                        title="Remove Record"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                </section>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="6" style={{ padding: '5rem', textAlign: 'center' }}>
+                    <p style={{ fontWeight: 800, color: C.text, fontSize: '1.1rem' }}>Clinical directory empty</p>
+                    <p style={{ color: C.muted, marginTop: '0.5rem' }}>No medical staff records found matching your criteria.</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
 
-                <div style={{ height: '1px', background: 'var(--border-color)' }}></div>
-
-                {/* 3. Availability Component */}
-                <section>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: 'var(--primary)' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <h3 className="text-title" style={{ fontSize: '1.1rem' }}>Clinical Availability</h3>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '1rem' }}>ACTIVE DAYS</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                                {daysOfWeek.map(day => (
-                                    <button 
-                                        key={day}
-                                        type="button"
-                                        onClick={() => toggleDay(day)}
-                                        style={{ 
-                                            padding: '0.6rem 1.25rem', borderRadius: '12px', border: '2px solid', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.2s',
-                                            borderColor: selectedDays.includes(day) ? 'var(--primary)' : 'var(--border-color)',
-                                            background: selectedDays.includes(day) ? 'var(--primary-glow)' : 'transparent',
-                                            color: selectedDays.includes(day) ? 'var(--primary)' : 'var(--text-secondary)'
-                                        }}
-                                    >
-                                        {day}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '1rem' }}>CONSULTATION SLOTS</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.75rem' }}>
-                                {commonSlots.map(slot => (
-                                    <button 
-                                        key={slot}
-                                        type="button"
-                                        onClick={() => toggleSlot(slot)}
-                                        style={{ 
-                                            padding: '0.6rem', borderRadius: '10px', border: '1.5px solid', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer', transition: 'all 0.2s',
-                                            borderColor: selectedSlots.includes(slot) ? 'var(--primary)' : 'var(--border-color)',
-                                            background: selectedSlots.includes(slot) ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
-                                            color: selectedSlots.includes(slot) ? 'var(--primary)' : 'var(--text-secondary)'
-                                        }}
-                                    >
-                                        {slot}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <div style={{ height: '1px', background: 'var(--border-color)' }}></div>
-
-                {/* 4. Operations */}
-                <section>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>HOSPITAL AFFILIATION</label>
-                            <input name="hospital_name" defaultValue={currentConsultant?.hospital_name || "Central Government Hospital"} required className="input-field" />
-                        </div>
-                        <div className="form-group">
-                            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>ACCOUNT STATUS</label>
-                            <select name="status" defaultValue={currentConsultant?.status || "Active"} className="input-field">
-                                <option>Active</option>
-                                <option>On Leave</option>
-                                <option>Inactive</option>
-                            </select>
-                        </div>
-                    </div>
-                </section>
-
-                <div className="flex justify-end gap-4 mt-8 pt-8" style={{ borderTop: '1px solid var(--border-color)' }}>
+          {/* Pagination Footer */}
+          <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ fontSize: '0.85rem', color: C.muted, fontWeight: 600 }}>
+              Showing {paginated.length} of {filtered.length} medical staff
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button 
+                disabled={page === 1}
+                onClick={() => setPage(prev => prev - 1)}
+                style={{ padding: '0.5rem', borderRadius: '8px', border: `1.5px solid ${C.border}`, background: 'white', color: page === 1 ? C.muted : C.text, cursor: page === 1 ? 'not-allowed' : 'pointer', display: 'flex' }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                {[...Array(totalPages)].map((_, i) => (
                   <button 
-                    type="button" 
-                    onClick={() => setIsConsultantModalOpen(false)} 
-                    style={{ padding: '1rem 2rem', borderRadius: '14px', border: '2px solid var(--border-color)', background: 'transparent', fontWeight: 700, color: 'var(--text-secondary)', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="btn-premium" 
-                    disabled={isSubmitting}
+                    key={i}
+                    onClick={() => setPage(i + 1)}
                     style={{ 
-                        padding: '1rem 2.5rem', 
-                        borderRadius: '14px', 
-                        background: 'linear-gradient(135deg, #4F46E5, #6366f1)',
-                        boxShadow: '0 10px 20px -5px rgba(79, 70, 229, 0.4)',
-                        fontSize: '1rem'
+                      width: '32px', height: '32px', borderRadius: '8px', border: 'none', 
+                      background: page === i + 1 ? C.primary : 'transparent',
+                      color: page === i + 1 ? 'white' : C.text,
+                      fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer'
                     }}
                   >
-                    {isSubmitting ? (currentConsultant ? 'Saving...' : 'Deploying Credentials...') : (currentConsultant ? 'Update Profile' : 'Create & Send Credentials')}
+                    {i + 1}
                   </button>
-                </div>
-              </form>
+                ))}
+              </div>
+              <button 
+                disabled={page === totalPages || totalPages === 0}
+                onClick={() => setPage(prev => prev + 1)}
+                style={{ padding: '0.5rem', borderRadius: '8px', border: `1.5px solid ${C.border}`, background: 'white', color: (page === totalPages || totalPages === 0) ? C.muted : C.text, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer', display: 'flex' }}
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
           </div>
+        </div>
+
+        {/* --- Creation/Edit Modal --- */}
+        {isModalOpen && (
+          <>
+            <div onClick={() => setIsModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(6px)', zIndex: 1000 }} />
+            <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '850px', maxHeight: '90vh', background: 'white', zIndex: 1001, borderRadius: '28px', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', animation: 'modalSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+              
+              <div style={{ padding: '1.75rem 2.5rem', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', borderTopLeftRadius: '28px', borderTopRightRadius: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: C.primary, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Briefcase size={26} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: C.text }}>{currentConsultant ? 'Modify Credentials' : 'Staff Onboarding'}</h2>
+                    <p style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 700, textTransform: 'uppercase' }}>Clinical Staff Registry Protocol</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', border: `1px solid ${C.border}`, color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={20} /></button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '2.5rem' }}>
+                <form id="consultant-form" onSubmit={handleSaveConsultant} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                  
+                  {/* Bio Section */}
+                  <div>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 900, color: C.primary, textTransform: 'uppercase', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={16} /> Identity & Credentials</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Full Medical Name *</label>
+                        <input name="name" defaultValue={currentConsultant?.name} required className="input-field" placeholder="Dr. John Doe" style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 600 }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Medical Registration No *</label>
+                        <input name="registration_no" defaultValue={currentConsultant?.registration_no} required className="input-field" placeholder="SLMC-XXXXX" style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 700, color: C.primary }} />
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>System Access Email *</label>
+                        <div style={{ position: 'relative' }}>
+                          <Mail size={18} color={C.muted} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                          <input name="email" type="email" required className="input-field" placeholder="doctor@hospital.lk" style={{ width: '100%', padding: '0.9rem 1rem 0.9rem 2.75rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 600 }} />
+                        </div>
+                        {!currentConsultant && <p style={{ fontSize: '0.7rem', color: C.muted, marginTop: '0.5rem' }}>System will auto-generate and send login credentials to this address.</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Professional Section */}
+                  <div>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 900, color: C.primary, textTransform: 'uppercase', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Stethoscope size={16} /> Clinical Profile</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Clinical Specialization</label>
+                        <select name="specialization" defaultValue={currentConsultant?.specialization || "Pediatrician"} className="input-field" style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 700 }}>
+                            <option>Pediatrician</option>
+                            <option>Vaccination Officer</option>
+                            <option>Child Nutritionist</option>
+                            <option>Development Specialist</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Assigned Department</label>
+                        <select name="department" defaultValue={currentConsultant?.department || "Child Clinic"} className="input-field" style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 700 }}>
+                            <option>Child Clinic</option>
+                            <option>Vaccination Unit</option>
+                            <option>Nutrition Clinic</option>
+                            <option>Development Clinic</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Highest Qualification</label>
+                        <input name="qualification" defaultValue={currentConsultant?.qualification} required className="input-field" placeholder="MBBS, MD (Pediatrics)" style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 600 }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Years of Experience</label>
+                        <input name="experience" type="number" defaultValue={currentConsultant?.experience} required className="input-field" placeholder="10" style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 700 }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Availability Section */}
+                  <div style={{ background: '#F8FAFC', padding: '1.75rem', borderRadius: '20px', border: `1px solid ${C.border}` }}>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 900, color: C.primary, textTransform: 'uppercase', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> Clinical Duty Cycle</h4>
+                    
+                    <div style={{ marginBottom: '1.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.75rem' }}>Active Consultation Days</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                        {daysOfWeek.map(day => (
+                          <button 
+                            key={day} type="button" onClick={() => toggleDay(day)}
+                            style={{ 
+                              padding: '0.6rem 1.1rem', borderRadius: '10px', border: '1.5px solid', fontWeight: 750, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s',
+                              borderColor: selectedDays.includes(day) ? C.primary : C.border,
+                              background: selectedDays.includes(day) ? C.primaryLight : 'white',
+                              color: selectedDays.includes(day) ? C.primary : C.secondary
+                            }}
+                          >
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.75rem' }}>Time Slot Allocation</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.6rem' }}>
+                        {commonSlots.map(slot => (
+                          <button 
+                            key={slot} type="button" onClick={() => toggleSlot(slot)}
+                            style={{ 
+                              padding: '0.6rem', borderRadius: '10px', border: '1.5px solid', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.2s',
+                              borderColor: selectedSlots.includes(slot) ? C.blue : C.border,
+                              background: selectedSlots.includes(slot) ? C.blueLight : 'white',
+                              color: selectedSlots.includes(slot) ? C.blue : C.secondary
+                            }}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Operational Section */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Hospital Affiliation</label>
+                      <div style={{ position: 'relative' }}>
+                        <Hospital size={18} color={C.muted} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input name="hospital_name" defaultValue={currentConsultant?.hospital_name || "Central Government Hospital"} required className="input-field" style={{ width: '100%', padding: '0.9rem 1rem 0.9rem 2.75rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 600 }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: C.secondary, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Personnel Status</label>
+                      <select name="status" defaultValue={currentConsultant?.status || "Active"} className="input-field" style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: `1.5px solid ${C.border}`, fontWeight: 800, color: C.text }}>
+                        <option>Active</option>
+                        <option>On Leave</option>
+                        <option>Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+
+                </form>
+              </div>
+
+              <div style={{ padding: '1.75rem 2.5rem', background: '#F8FAFC', borderTop: `1px solid ${C.border}`, display: 'flex', gap: '1rem', borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
+                <button onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '1rem', background: 'white', border: `1.5px solid ${C.border}`, borderRadius: '14px', fontWeight: 800, color: C.text, cursor: 'pointer' }}>Cancel</button>
+                <button form="consultant-form" type="submit" style={{ flex: 2, padding: '1rem', background: C.primary, color: 'white', border: 'none', borderRadius: '14px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 6px 15px rgba(79, 70, 229, 0.25)' }}>{isSubmitting ? 'Syncing...' : (currentConsultant ? 'Update Clinical Profile' : 'Onboard Professional')}</button>
+              </div>
+            </div>
+          </>
         )}
+
       </div>
+      <style>{`
+        @keyframes modalSlide {
+          from { transform: translate(-50%, -45%); opacity: 0; }
+          to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .input-field:focus {
+          border-color: ${C.primary} !important;
+          outline: none;
+          box-shadow: 0 0 0 4px ${C.primaryLight};
+        }
+      `}</style>
     </AdminLayout>
   );
 };

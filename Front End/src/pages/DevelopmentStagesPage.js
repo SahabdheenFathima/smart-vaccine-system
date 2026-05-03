@@ -163,12 +163,12 @@ const DevelopmentStagesPage = () => {
                                         {/* FRONT */}
                                         <div className="flip-card-front">
                                             <div className="milestone-badge">STAGE {sIdx + 1}</div>
-                                            <div style={{ height: '220px', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                            <div style={{ height: '300px', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid #F1F5F9' }}>
                                                 {/* Fallback pattern if image is missing */}
                                                 <img 
                                                     src={stage.image} 
                                                     alt={stage.title} 
-                                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2rem' }} 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.5rem' }} 
                                                     onError={(e) => { e.target.style.display = 'none'; }}
                                                 />
                                             </div>
@@ -266,7 +266,7 @@ const DevelopmentStagesPage = () => {
                 .flip-card {
                     background-color: transparent;
                     perspective: 1000px;
-                    height: 480px;
+                    height: 540px;
                 }
                 .flip-card-inner {
                     position: relative;
