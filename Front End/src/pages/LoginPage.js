@@ -236,7 +236,7 @@ const LoginPage = () => {
                         <p style={{ fontSize: '0.95rem', color: '#64748B', fontWeight: 600 }}>
                             Unauthorized Access Prohibited. <br />
                             <Link to="/sign-up" style={{ color: '#4F46E5', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.75rem' }}>
-                                Request Staff Credentials <ShieldCheck size={16} />
+                                Register Parent Account <ShieldCheck size={16} />
                             </Link>
                         </p>
                     </motion.div>
