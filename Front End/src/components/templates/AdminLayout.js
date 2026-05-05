@@ -218,17 +218,7 @@ const AdminLayout = ({ children, user }) => {
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
               <Menu size={20} />
             </button>
-            {/* Search */}
-            <div style={{ position: 'relative' }}>
-              <svg style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#94A3B8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input type="text" placeholder="Search patients, vaccines, staff..."
-                style={{ paddingLeft: '2.25rem', paddingRight: '1rem', paddingTop: '0.55rem', paddingBottom: '0.55rem', border: '1.5px solid #E8ECF4', borderRadius: '10px', fontSize: '0.875rem', color: '#0F172A', outline: 'none', width: '280px', background: '#F8FAFC', fontFamily: 'inherit' }}
-                onFocus={e => e.target.style.borderColor = '#6366F1'}
-                onBlur={e => e.target.style.borderColor = '#E8ECF4'}
-              />
-            </div>
+
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

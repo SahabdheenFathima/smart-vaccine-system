@@ -132,37 +132,12 @@ const AdminMilestonesPage = () => {
         {/* Main Application Window (Matching the mockup exact frame) */}
         <div className="w-full max-w-[1100px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-xl overflow-hidden bg-white relative">
           
-          {/* Dark Header */}
-          <div className="bg-[#15233D] text-white flex justify-between items-center px-6 py-4">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2 font-bold text-lg tracking-wide">
-                <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
-                MediTrack Milestones
-              </div>
-              <nav className="flex gap-6 text-sm font-medium text-gray-300">
-                <span className="text-white bg-white/10 px-3 py-1 rounded">Dashboard</span>
-                <span className="hover:text-white cursor-pointer px-3 py-1">Reports</span>
-                <span className="hover:text-white cursor-pointer px-3 py-1">Settings</span>
-              </nav>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="relative cursor-pointer">
-                <span className="text-sm font-medium">Notifications</span>
-                <div className="absolute top-0 -right-2 w-2 h-2 bg-red-500 rounded-full"></div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">Dr. Sarah Johnson</span>
-                <div className="w-8 h-8 rounded-full bg-white text-[#15233D] flex items-center justify-center font-bold text-sm">SJ</div>
-              </div>
-            </div>
-          </div>
+
 
           {/* Sub Header & Search */}
           <div className="border-b border-gray-200 px-6 py-3 flex justify-between items-end bg-white">
-            <div className="flex gap-8">
-              <div className="text-blue-600 font-bold pb-3 border-b-2 border-blue-600 relative top-[13px] px-1 cursor-pointer">Overview</div>
-              <div className="text-gray-500 font-semibold pb-3 px-1 cursor-pointer hover:text-gray-700">Children</div>
-              <div className="text-gray-500 font-semibold pb-3 px-1 cursor-pointer hover:text-gray-700">Clinicians</div>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-gray-800">Milestone Monitor</h2>
             </div>
             <div className="relative mb-2">
               <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
