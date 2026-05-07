@@ -478,10 +478,10 @@ const ConsultantDashboardPage = () => {
       const response = await fetch(`http://localhost:5001/api/bookings`);
       const data = await response.json();
       if (data.status === "ok") {
-        setPendingAppointments(data.data.filter(app => app.consultant_id?._id === userData?._id));
+        setPendingAppointments(data.data.filter(app => app.consultant_id?.email === userData?.email));
       }
     } catch (error) { console.error(error); }
-  }, [userData?._id]);
+  }, [userData?.email]);
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
@@ -506,7 +506,7 @@ const ConsultantDashboardPage = () => {
   const updateStatus = async (id, status) => {
     try {
         const res = await fetch(`http://localhost:5001/api/bookings/${id}/status`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
         });
         const data = await res.json();
         if (data.status === 'ok') { toast.success(`Status: ${status}`); fetchAppointments(); }
